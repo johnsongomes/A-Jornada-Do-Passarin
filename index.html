@@ -272,21 +272,22 @@ class Obstacle {
 
     // Ajusta posição conforme tipo (conforme XML)
     if (type === 'tree') {
-      this.y = canvas.height - 100;
+      this.y = canvas.height - 200;
       this.imgKey = 'tree1';
-      this.width = 70; this.height = 100;
+      this.width = 80; this.height = 200;
     } else if (type === 'tree2') {
-      this.y = canvas.height - 120;
+      this.y = canvas.height - 210;
       this.imgKey = 'tree2';
-      this.width = 70; this.height = 110;
+      this.width = 80; this.height = 210;
     } else if (type === 'tree3') {
-      this.y = canvas.height - 140 - Math.random() * 100;
+      this.y = canvas.height - 240 - Math.random() * 100;
       this.imgKey = 'tree3';
-      this.width = 70; this.height = 120;
+      this.width = 80; this.height = 220;
     } else if (type === 'plane') {
-      this.y = 80 + Math.random() * 200;
+      this.y = -100 + Math.random() * 200;
+      this.x = canvas.width - 950; // começa mais à direita
       this.imgKey = 'plane';
-      this.width = -100; this.height = 50;
+      this.width = 200; this.height = 100;
       this.speedX = 3 - Math.random() * 1.5;
     }
   }
@@ -405,7 +406,7 @@ class Owl {
       ctx.stroke();
       ctx.fillStyle = 'black';
       ctx.font = '14px Arial';
-      ctx.fillText("Você ganhou um coração!", this.x - 140, this.y - 70);
+      ctx.fillText("Você ganhou um coração!", this.x - 150, this.y - 70);
     }
   }
 }

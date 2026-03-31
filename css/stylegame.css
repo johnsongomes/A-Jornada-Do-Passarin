@@ -1,0 +1,48 @@
+body {
+    margin: 0;
+    background: #111;
+    color: white;
+    font-family: "Segoe UI", Arial, sans-serif;
+    overflow: hidden; /* evita scroll no mobile */
+    touch-action: none;
+  }
+  #gameCanvas {
+    display: block;
+    margin: 0 auto;
+    background: #222;
+    width: 960px;
+    height: 540px; /* 1920×1080 → metade (mantém proporção 16:9) */
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  }
+  @media (max-width: 980px) {
+    #gameCanvas {
+      width: 100vw;
+      height: 56.25vw;
+    }
+  }
+  #loading {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    z-index: 999;
+  }
+  .loader {
+    width: 200px;
+    height: 10px;
+    background: #333;
+    margin-top: 20px;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .loader-bar {
+    height: 100%;
+    background: #4CAF50;
+    width: 0%;
+    transition: width 0.2s;
+  }

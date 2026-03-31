@@ -217,9 +217,9 @@ class Obstacle {
       this.width = 80; this.height = 220;
     } else if (type === 'plane') {
       this.y = -100 + Math.random() * 200;
-      this.x = canvas.width - 950; // começa mais à direita
+      this.x = canvas.width - 960; // começa mais à direita
       this.imgKey = 'plane';
-      this.width = 200; this.height = 100;
+      this.width = 150; this.height = 75;
       this.speedX = 3 - Math.random() * 1.5;
     }
   }
@@ -253,8 +253,8 @@ class Obstacle {
 class Heart {
   constructor() {
     this.visible = false;
-    this.x = canvas.width - 100;
-    this.y = canvas.height - 80;
+    this.x = canvas.width - 950;
+    this.y = canvas.height - 540;
     this.size = 50;
     this.timer = 0; // 30 segundos = 1800 frames (60fps)
   }
@@ -338,7 +338,7 @@ class Owl {
       ctx.stroke();
       ctx.fillStyle = 'black';
       ctx.font = '14px Arial';
-      ctx.fillText("Você ganhou um coração!", this.x - 150, this.y - 70);
+      ctx.fillText("Você ganhou um coração!", this.x -  -17, this.y - 70);
     }
   }
 }

@@ -122,7 +122,9 @@ let currentScene = SCENE.PLAY;
 let gameVars = {
   contador: 0, distanciap: 0, meta: 0, passada: 0,
   colisao: false, coracaovida: false, transicao: 0,
-  kmMode: false, morred: ''
+  kmMode: false, morred: '',
+  invencivel: false,
+invencivelTimer: 0
 };
 
 // --- CLASSES DE OBJETOS ---
@@ -269,11 +271,13 @@ class Heart {
     this.timer--;
     if (this.timer <= 0) {
       this.visible = false;
-      gameVars.coracaovida = false;
     }
   }
 
   draw() {
+    if (gameVars.invencivel) {
+        ctx.globalAlpha = (frameCount % 10 < 5) ? 0.5 : 1;
+    }
     if (!this.visible) return;
     const img = images.heart;
     if (img) {
@@ -289,6 +293,7 @@ class Heart {
       ctx.quadraticCurveTo(this.x + s, this.y, this.x + s/2, this.y + s/4);
       ctx.fill();
     }
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -359,7 +364,7 @@ function spawnObstacle() {
 function resetGameVars() {
   gameVars = {
     contador: 0, distanciap: 0, meta: 0, passada: 0,
-    colisao: false, coracaovida: false, transicao: 0,
+    colisao: false, transicao: 0,
     kmMode: false, morred: ''
   };
   obstacles = [];
@@ -396,13 +401,9 @@ function updateGameplay() {
   obstacles.forEach(obs => {
     obs.update();
     if (checkCollision(bird.getBounds(), obs.getBounds())) {
-      if (!gameVars.coracaovida) {
-        triggerGameOver();
-      } else {
-        // Consome coração
-        gameVars.coracaovida = false;
-        heart.visible = false;
-      }
+        if (!gameVars.invencivel) {
+            triggerGameOver();
+        }
     }
   });
 
@@ -427,10 +428,31 @@ function updateGameplay() {
     gameVars.meta = 0;
     if (!heart.visible) {
       heart.show();
-      gameVars.coracaovida = true;
     }
     if (!owl.visible) owl.show();
   }
+
+  // Colisão com coração
+  if (heart.visible && checkCollision(bird.getBounds(), {
+    x: heart.x,
+    y: heart.y,
+    w: heart.size,
+    h: heart.size
+  })) {
+    heart.visible = false;
+
+    gameVars.invencivel = true;
+    gameVars.invencivelTimer = 30 * 60; // 30 segundos
+
+    console.log("INVENCÍVEL POR 30 SEGUNDOS!");
+  }
+  if (gameVars.invencivel) {
+    gameVars.invencivelTimer--;
+
+  if (gameVars.invencivelTimer <= 0) {
+    gameVars.invencivel = false;
+  }
+}
 }
 
 function drawBackground(scene) {
@@ -533,6 +555,12 @@ function drawGameScene() {
   ctx.textAlign = 'right';
   ctx.strokeText('Dist: ' + gameVars.distanciap, canvas.width - 50, 60);
   ctx.fillText('Dist: ' + gameVars.distanciap, canvas.width - 50, 60);
+  if (gameVars.invencivel) {
+    ctx.fillStyle = 'yellow';
+    ctx.font = 'bold 30px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText("INVENCÍVEL!", canvas.width / 2, 50);
+  }
 }
 
 function drawGameOverScene() {

@@ -109,6 +109,10 @@ function loadAssets() {
         };
       }
     }
+    setTimeout(() => {
+    console.warn("Forçando início (timeout)");
+    resolve();
+    }, 5000);
   });
 }
 

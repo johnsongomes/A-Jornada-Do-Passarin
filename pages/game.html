@@ -24,19 +24,24 @@
 <!-- Script principal do jogo -->
 <script src="/js/logicagame.js"></script>
 <script>
-  window.onload = () => {
-  function fullscreenCanvas() {
-    const canvas = document.getElementById('gameCanvas')
+function fullscreenCanvas() {
+  const canvas = document.getElementById('gameCanvas')
 
+  // Redimensiona
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
+
+  // Tenta fullscreen real
+  if (canvas.requestFullscreen) {
+    canvas.requestFullscreen()
+  }
+
+  // Ajusta ao redimensionar
+  window.addEventListener('resize', () => {
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
-
-    window.addEventListener('resize', () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-    }
-  }
+  })
+}
 </script>
 </body>
 </html>

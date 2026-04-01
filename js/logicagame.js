@@ -43,7 +43,7 @@ const ASSETS = {
   // Sons (opcional — o jogo funciona sem eles)
   sndBird:   "/GAME/Scene0sounds/Bird.wav",
   sndDrip:   "/GAME/Scene0/sounds/DripDrop.mpga",
-  sndBing:   "/GAME/Scene0/sounds/bing_#0.mpga",
+  sndBing:   "/GAME/Scene0/sounds/bing_#0.wav",
   sndLose:   "/GAME/Scene0/sounds/lose.mpga",
   sndTweet:  "/GAME/Scene0/sounds/tweet.mpga",
   sndBeep:   "/GAME/Scene0/sounds/beep.mpga"

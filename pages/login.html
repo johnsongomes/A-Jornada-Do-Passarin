@@ -12,7 +12,7 @@
     <form id="loginForm">
       <input type="text" id="username" placeholder="Nome de usuário" required>
       <input type="password" id="password" placeholder="Senha" required>
-      <button type="submit">Entrar</button>
+      <button onclick="login()">Entrar</button>
     </form>
   </div>
 
@@ -23,6 +23,7 @@
   import { signIn } from '../js/auth.js'
 
   window.login = async () => {
+    console.log("CLICOU NO BOTÃO 🔥")
     const email = document.getElementById('email').value
     const password = document.getElementById('password').value
 

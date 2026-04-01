@@ -9,7 +9,7 @@ const ctx = canvas.getContext('2d');
 // Coloque seus arquivos exatamente com esses nomes na mesma pasta,
 // ou ajuste os caminhos abaixo.
 // Se preferir subpastas, use "./img/nome.png" e "./sound/nome.wav".
-const ASSETS = {
+const IMAGEM_ASSETS = {
   // Fundos
   bgPlay:     "../GAME/Play/images/Sterne (Landscape).png",
   bgGame:     "../GAME/Scene0/images/Pyramids.png",
@@ -40,6 +40,9 @@ const ASSETS = {
   owl1:    "/GAME/Scene0/images/owl.png",    // coruja
   owl2:    "/GAME/Scene0/images/owl-3.png",  // coruja (outra pose)
 
+  // Sons (opcional — o jogo funciona sem eles)
+};
+const SOUNDS_ASSETS = {
   // Sons (opcional — o jogo funciona sem eles)
   sndBird:   "/GAME/Scene0/sounds/Bird0.wav",
   sndDrip:   "/GAME/Scene0/sounds/DripDrop.mpga",

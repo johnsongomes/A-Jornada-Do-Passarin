@@ -75,7 +75,7 @@ function loadAssets() {
         const audio = new Audio();
         audio.src = path;
 
-        audio.onloadeddata = () => {
+        audio.oncanplaythrough = () => {
           sounds[key] = audio;
           loadedCount++;
           updateLoader((loadedCount / totalToLoad) * 100);

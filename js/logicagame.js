@@ -66,31 +66,48 @@ function updateLoader(percent) {
 
 function loadAssets() {
   return new Promise((resolve, reject) => {
-    // Carrega imagens
+
     for (const key in ASSETS) {
       const path = ASSETS[key];
-      const img = new Image();
-      img.src = path;
-      img.onload = () => {
-        images[key] = img;
-        loadedCount++;
-        updateLoader((loadedCount / totalToLoad) * 100);
-        if (loadedCount === totalToLoad) {
-          document.getElementById('loading').style.display = 'none';
-          resolve();
-        }
-      };
-      img.onerror = () => {
-        console.warn("Não foi possível carregar:", path, "(usará fallback)");
-        // Cria um placeholder vazio para não quebrar o jogo
-        images[key] = null;
-        loadedCount++;
-        updateLoader((loadedCount / totalToLoad) * 100);
-        if (loadedCount === totalToLoad) {
-          document.getElementById('loading').style.display = 'none';
-          resolve();
-        }
-      };
+
+      // 👉 SE FOR SOM
+      if (path.includes('.mp3') || path.includes('.wav') || path.includes('.mpga')) {
+        const audio = new Audio();
+        audio.src = path;
+
+        audio.onloadeddata = () => {
+          sounds[key] = audio;
+          loadedCount++;
+          updateLoader((loadedCount / totalToLoad) * 100);
+          if (loadedCount === totalToLoad) resolve();
+        };
+
+        audio.onerror = () => {
+          console.warn("Erro ao carregar som:", path);
+          sounds[key] = null;
+          loadedCount++;
+          if (loadedCount === totalToLoad) resolve();
+        };
+
+      } else {
+        // 👉 IMAGEM (igual já tava)
+        const img = new Image();
+        img.src = path;
+
+        img.onload = () => {
+          images[key] = img;
+          loadedCount++;
+          updateLoader((loadedCount / totalToLoad) * 100);
+          if (loadedCount === totalToLoad) resolve();
+        };
+
+        img.onerror = () => {
+          console.warn("Não foi possível carregar:", path);
+          images[key] = null;
+          loadedCount++;
+          if (loadedCount === totalToLoad) resolve();
+        };
+      }
     }
   });
 }

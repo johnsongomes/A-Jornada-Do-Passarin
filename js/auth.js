@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient.js'
 // CADASTRO
 export async function signUp(email, password) {
   const { data, error } = await supabase.auth.signUp({
+    username,
     email,
     password,
   })
@@ -24,14 +25,14 @@ export async function signIn(email, password) {
   if (error) {
     alert(error.message)
   } else {
-    window.location.href = '/dashboard.html'
+    window.location.href = '../pages/dashboard.html'
   }
 }
 
 // LOGOUT
 export async function logout() {
   await supabase.auth.signOut()
-  window.location.href = '/login.html'
+  window.location.href = '../index.html'
 }
 
 // VER USUÁRIO

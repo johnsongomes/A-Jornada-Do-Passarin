@@ -726,7 +726,14 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
     this.closePath();
     return this;
   };
-  function fullscreenCanvas() {
+
+}
+
+function initGame() {
+  // nada mais a fazer — assets já carregados
+}
+
+function fullscreenCanvas() {
     const canvas = document.getElementById('gameCanvas')
 
     canvas.width = window.innerWidth
@@ -735,10 +742,5 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
     window.addEventListener('resize', () => {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
-    })
-  }
-}
-
-function initGame() {
-  // nada mais a fazer — assets já carregados
+    }
 }

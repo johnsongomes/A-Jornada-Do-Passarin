@@ -11,42 +11,42 @@ const ctx = canvas.getContext('2d');
 // Se preferir subpastas, use "./img/nome.png" e "./sound/nome.wav".
 const ASSETS = {
   // Fundos
-  bgPlay:     "./Play/images/Sterne (Landscape).png.png",
-  bgGame:     "./Scene0/images/Pyramids.png",
-  bgGameOver: "./GAMEover/images/Cloudy sky.png",
+  bgPlay:     "GAME/Play/images/Sterne (Landscape).png.png",
+  bgGame:     "GAME/Scene0/images/Pyramids.png",
+  bgGameOver: "GAME/GAMEover/images/Cloudy sky.png",
 
   // Botões e telas
-  btnPlay:        "./Play/images/Btn-Play.png",
-  btnPlayAgain:   "./GAMEover/images/Btn-Play-again.png",
-  btnBack:        "./GAMEover/images/Btn-back.png",
-  btnSair:        "./GAMEover/images/incorrect.png", // ou "incorrect2.png"
-  gameOverImg:    "./GAMEover/images/Game Over.png",
+  btnPlay:        "GAME/Play/images/Btn-Play.png",
+  btnPlayAgain:   "GAME/GAMEover/images/Btn-Play-again.png",
+  btnBack:        "GAME/GAMEover/images/Btn-back.png",
+  btnSair:        "GAME/GAMEover/images/incorrect.png", // ou "incorrect2.png"
+  gameOverImg:    "GAME/GAMEover/images/Game Over.png",
 
   // Pássaro
-  birdIdle1: "./Play/images/bird_idle-1.png",
-  birdIdle2: "./Play/images/bird_idle-2.png",
-  birdFly1:  "./Scene0/images/Bird fly-1.png",
-  birdFly2:  "./Scene0/images/Bird fly-2.png",
-  birdFly3:  "./Scene0/images/Bird fly-3.png",
+  birdIdle1: "GAME/Play/images/bird_idle-1.png",
+  birdIdle2: "GAME/Play/images/bird_idle-2.png",
+  birdFly1:  "GAME/Scene0/images/Bird fly-1.png",
+  birdFly2:  "GAME/Scene0/images/Bird fly-2.png",
+  birdFly3:  "GAME/Scene0/images/Bird fly-3.png",
 
   // Obstáculos
-  tree1: "./Scene0/images/tree-6.png",   // arvore
-  tree2: "./Scene0/images/tree-4.png",   // arvore2
-  tree3: "./Scene0/images/tree-7.png",   // arvore3
-  plane: "./Scene0/images/plane.png",    // aviao
+  tree1: "GAME/Scene0/images/tree-6.png",   // arvore
+  tree2: "GAME/Scene0/images/tree-4.png",   // arvore2
+  tree3: "GAME/Scene0/images/tree-7.png",   // arvore3
+  plane: "GAME/Scene0/images/plane.png",    // aviao
 
   // Itens e NPCs
-  heart:   "./Scene0/images/Card.png",   // Coração
-  owl1:    "./Scene0/images/owl.png",    // coruja
-  owl2:    "./Scene0/images/owl-3.png",  // coruja (outra pose)
+  heart:   "GAME/Scene0/images/Card.png",   // Coração
+  owl1:    "GAME/Scene0/images/owl.png",    // coruja
+  owl2:    "GAME/Scene0/images/owl-3.png",  // coruja (outra pose)
 
   // Sons (opcional — o jogo funciona sem eles)
-  sndBird:   "./Scene0/sounds/Bird_#0.wav",
-  sndDrip:   "./Scene0/sounds/DripDrop.mpga",
-  sndBing:   "./Scene0/sounds/bing_#0.mpga",
-  sndLose:   "./Scene0/sounds/lose.mpga",
-  sndTweet:  "./Scene0/sounds/tweet.mpga",
-  sndBeep:   "./Scene0/sounds/beep.mpga"
+  sndBird:   "GAME/Scene0/sounds/Bird_#0.wav",
+  sndDrip:   "GAME/Scene0/sounds/DripDrop.mpga",
+  sndBing:   "GAME/Scene0/sounds/bing_#0.mpga",
+  sndLose:   "GAME/Scene0/sounds/lose.mpga",
+  sndTweet:  "GAME/Scene0/sounds/tweet.mpga",
+  sndBeep:   "GAME/Scene0/sounds/beep.mpga"
 };
 
 // Objeto que guardará as imagens carregadas

@@ -14,6 +14,22 @@
     <button onclick="location.href='logout.html'">Sair</button>
   </div>
 
-  <script src="../js/dashboard.js"></script>
+  <script type="module">
+  import { getUser, logout } from './js/auth.js'
+
+  window.logoutUser = logout
+
+  async function check() {
+    const user = await getUser()
+
+    if (!user) {
+      window.location.href = '/login.html'
+    } else {
+      document.getElementById('usernameDisplay').innerText = user.email
+    }
+  }
+
+  check()
+  </script>
 </body>
 </html>

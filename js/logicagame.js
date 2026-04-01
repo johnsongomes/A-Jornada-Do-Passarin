@@ -11,7 +11,7 @@ const ctx = canvas.getContext('2d');
 // Se preferir subpastas, use "./img/nome.png" e "./sound/nome.wav".
 const ASSETS = {
   // Fundos
-  bgPlay:     "../GAME/Play/images/Sterne (Landscape).png.png",
+  bgPlay:     "../GAME/Play/images/Sterne (Landscape).png",
   bgGame:     "../GAME/Scene0/images/Pyramids.png",
   bgGameOver: "../GAME/GAMEover/images/Cloudy sky.png",
 
@@ -41,12 +41,12 @@ const ASSETS = {
   owl2:    "../GAME/Scene0/images/owl-3.png",  // coruja (outra pose)
 
   // Sons (opcional — o jogo funciona sem eles)
-  sndBird:   "../GAME/Scene0/sounds/Bird_#0.wav",
-  sndDrip:   "../GAME/Scene0/sounds/DripDrop.mpga",
-  sndBing:   "../GAME/Scene0/sounds/bing_#0.mpga",
-  sndLose:   "../GAME/Scene0/sounds/lose.mpga",
-  sndTweet:  "../GAME/Scene0/sounds/tweet.mpga",
-  sndBeep:   "../GAME/Scene0/sounds/beep.mpga"
+  sndBird:   "/GAME/Scene0sounds/Bird.wav",
+  sndDrip:   "/GAME/Scene0/sounds/DripDrop.mpga",
+  sndBing:   "/GAME/Scene0/sounds/bing_#0.mpga",
+  sndLose:   "/GAME/Scene0/sounds/lose.mpga",
+  sndTweet:  "/GAME/Scene0/sounds/tweet.mpga",
+  sndBeep:   "/GAME/Scene0/sounds/beep.mpga"
 };
 
 // Objeto que guardará as imagens carregadas

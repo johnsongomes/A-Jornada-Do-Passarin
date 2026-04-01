@@ -24,6 +24,7 @@
 <!-- Script principal do jogo -->
 <script src="/js/logicagame.js"></script>
 <script>
+  window.onload = () => {
   function fullscreenCanvas() {
     const canvas = document.getElementById('gameCanvas')
 
@@ -33,7 +34,9 @@
     window.addEventListener('resize', () => {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
-    }}
+    }
+    }
+  }
 </script>
 </body>
 </html>

@@ -24,23 +24,29 @@
 <!-- Script principal do jogo -->
 <script src="/js/logicagame.js"></script>
 <script>
+function ajustarTela() {
+  const canvas = document.getElementById('gameCanvas')
+
+  const scaleX = window.innerWidth / 960
+  const scaleY = window.innerHeight / 540
+
+  const scale = Math.min(scaleX, scaleY)
+
+  canvas.style.width = (960 * scale) + 'px'
+  canvas.style.height = (540 * scale) + 'px'
+}
+
+window.addEventListener('resize', ajustarTela)
+window.onload = ajustarTela
+  
 function fullscreenCanvas() {
   const canvas = document.getElementById('gameCanvas')
 
-  // Redimensiona
-  canvas.width = window.innerWidth
-  canvas.height = window.innerHeight
-
-  // Tenta fullscreen real
   if (canvas.requestFullscreen) {
     canvas.requestFullscreen()
   }
 
-  // Ajusta ao redimensionar
-  window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-  })
+  ajustarTela()
 }
 </script>
 </body>

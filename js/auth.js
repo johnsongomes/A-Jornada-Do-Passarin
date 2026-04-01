@@ -3,9 +3,13 @@ import { supabase } from './supabaseClient.js'
 // CADASTRO
 export async function signUp(username, email, password) {
   const { data, error } = await supabase.auth.signUp({
-    username,
     email,
     password,
+    options: {
+      data: {
+        username: username // 🔥 salva aqui
+      }
+    }
   })
 
   if (error) {

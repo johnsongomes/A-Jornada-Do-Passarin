@@ -23,22 +23,22 @@ const ASSETS = {
   gameOverImg:    "../GAME/GAMEover/images/Game Over.png",
 
   // Pássaro
-  birdIdle1: "../GAME/Play/images/bird_idle-1.png",
-  birdIdle2: "../GAME/Play/images/bird_idle-2.png",
-  birdFly1:  "../GAME/Scene0/images/Bird fly-1.png",
-  birdFly2:  "../GAME/Scene0/images/Bird fly-2.png",
-  birdFly3:  "../GAME/Scene0/images/Bird fly-3.png",
+  birdIdle1: "/GAME/Play/images/bird_idle-1.png",
+  birdIdle2: "/GAME/Play/images/bird_idle-2.png",
+  birdFly1:  "/GAME/Scene0/images/Bird fly-1.png",
+  birdFly2:  "/GAME/Scene0/images/Bird fly-2.png",
+  birdFly3:  "/GAME/Scene0/images/Bird fly-3.png",
 
   // Obstáculos
-  tree1: "../GAME/Scene0/images/tree-6.png",   // arvore
-  tree2: "../GAME/Scene0/images/tree-4.png",   // arvore2
-  tree3: "../GAME/Scene0/images/tree-7.png",   // arvore3
-  plane: "../GAME/Scene0/images/plane.png",    // aviao
+  tree1: "/GAME/Scene0/images/tree-6.png",   // arvore
+  tree2: "/GAME/Scene0/images/tree-4.png",   // arvore2
+  tree3: "/GAME/Scene0/images/tree-7.png",   // arvore3
+  plane: "/GAME/Scene0/images/plane.png",    // aviao
 
   // Itens e NPCs
-  heart:   "../GAME/Scene0/images/Card.png",   // Coração
-  owl1:    "../GAME/Scene0/images/owl.png",    // coruja
-  owl2:    "../GAME/Scene0/images/owl-3.png",  // coruja (outra pose)
+  heart:   "/GAME/Scene0/images/Card.png",   // Coração
+  owl1:    "/GAME/Scene0/images/owl.png",    // coruja
+  owl2:    "/GAME/Scene0/images/owl-3.png",  // coruja (outra pose)
 
   // Sons (opcional — o jogo funciona sem eles)
   sndBird:   "/GAME/Scene0/sounds/Bird0.wav",

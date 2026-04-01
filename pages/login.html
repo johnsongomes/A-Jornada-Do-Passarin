@@ -10,9 +10,9 @@
   <div class="login-container">
     <h2>Login</h2>
     <form id="loginForm">
-      <input type="text" id="username" placeholder="Nome de usuário" required>
+      <input type="email" id="email" placeholder="Email" required>
       <input type="password" id="password" placeholder="Senha" required>
-      <button onclick="login()">Entrar</button>
+      <button type="submit">Entrar</button>
     </form>
   </div>
 
@@ -23,7 +23,6 @@
   import { signIn } from '../js/auth.js'
 
   window.login = async () => {
-    console.log("CLICOU NO BOTÃO 🔥")
     const email = document.getElementById('email').value
     const password = document.getElementById('password').value
 

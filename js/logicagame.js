@@ -729,18 +729,6 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 
 }
 
-function fullscreenCanvas() {
-    const canvas = document.getElementById('gameCanvas')
-
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-
-    window.addEventListener('resize', () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-}
-
 
 function initGame() {
   // nada mais a fazer — assets já carregados

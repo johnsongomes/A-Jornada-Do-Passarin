@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient.js'
 
 // CADASTRO
-export async function signUp(email, password) {
+export async function signUp(username, email, password) {
   const { data, error } = await supabase.auth.signUp({
     username,
     email,

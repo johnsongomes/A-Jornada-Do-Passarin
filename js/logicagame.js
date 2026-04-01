@@ -41,7 +41,7 @@ const ASSETS = {
   owl2:    "../GAME/Scene0/images/owl-3.png",  // coruja (outra pose)
 
   // Sons (opcional — o jogo funciona sem eles)
-  sndBird:   "/GAME/Scene0sounds/Bird0.wav",
+  sndBird:   "/GAME/Scene0/sounds/Bird0.wav",
   sndDrip:   "/GAME/Scene0/sounds/DripDrop.mpga",
   sndBing:   "/GAME/Scene0/sounds/bing0.mpga",
   sndLose:   "/GAME/Scene0/sounds/lose.mpga",

@@ -61,13 +61,15 @@ let loadedCount = 0;
 let totalToLoad = 0;
 
 // Conta total de imagens
-totalToLoad = Object.keys(ASSETS).length;
+//totalToLoad = Object.keys(ASSETS).length;
+totalToLoad = Object.keys(IMAGE_ASSETS).length;
 
 function updateLoader(percent) {
   document.getElementById('loaderBar').style.width = percent + '%';
 }
 
-function loadAssets() {
+/*function loadAssets() {
+
   return new Promise((resolve, reject) => {
 
     for (const key in ASSETS) {
@@ -117,10 +119,48 @@ function loadAssets() {
     resolve();
     }, 5000);
   });
+
+}*/
+
+function loadAssets() {
+  return new Promise((resolve) => {
+    for (const key in IMAGE_ASSETS) {
+      const img = new Image();
+      img.src = IMAGE_ASSETS[key];
+
+      img.onload = () => {
+        images[key] = img;
+        loadedCount++;
+
+        updateLoader((loadedCount / totalToLoad) * 100);
+
+        if (loadedCount === totalToLoad) {
+          document.getElementById('loading').style.display = 'none';
+          resolve();
+        }
+      };
+
+      img.onerror = () => {
+        console.warn("Erro imagem:", IMAGE_ASSETS[key]);
+        images[key] = null;
+        loadedCount++;
+
+        if (loadedCount === totalToLoad) resolve();
+      };
+    }
+  });
+}
+
+function loadSounds() {
+  for (const key in SOUND_ASSETS) {
+    const audio = new Audio(SOUND_ASSETS[key]);
+    sounds[key] = audio;
+  }
 }
 
 // --- INICIALIZA O JOGO DEPOIS DE CARREGAR ---
 loadAssets().then(() => {
+  loadSounds();
   initGame();
   requestAnimationFrame(loop);
 });

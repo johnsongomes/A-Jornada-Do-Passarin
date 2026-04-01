@@ -729,10 +729,6 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 
 }
 
-function initGame() {
-  // nada mais a fazer — assets já carregados
-}
-
 function fullscreenCanvas() {
     const canvas = document.getElementById('gameCanvas')
 
@@ -743,4 +739,9 @@ function fullscreenCanvas() {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
     }
+}
+
+
+function initGame() {
+  // nada mais a fazer — assets já carregados
 }

@@ -409,7 +409,16 @@ function backToMenu() {
 // --- LÓGICA DE CADA CENA ---
 
 function updateGameplay() {
-  bird.update();
+  bird.update()
+  if (inputPressed) {
+  this.vy = this.jump;
+  inputPressed = false;
+
+  if (sounds.sndTweet) {
+    sounds.sndTweet.currentTime = 0;
+    sounds.sndTweet.play();
+  }
+  };
 
   // Spawn de obstáculos
   if (frameCount % 120 === 0) spawnObstacle();

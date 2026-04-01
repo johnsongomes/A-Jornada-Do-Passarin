@@ -12,8 +12,8 @@
     <form id="loginForm">
       <input type="email" id="email" placeholder="Email" required>
       <input type="password" id="password" placeholder="Senha" required>
-      <!--<button type="submit">Entrar</button>-->
-      <button onclick="login()">Entrar</button>
+      <button type="submit">Entrar</button>
+      <!--<button onclick="login()">Entrar</button>-->
     </form>
   </div>
 
@@ -24,7 +24,6 @@
   import { signIn } from '../js/auth.js'
 
   window.login = async () => {
-    console.log('button clicked')
     const email = document.getElementById('email').value
     const password = document.getElementById('password').value
 

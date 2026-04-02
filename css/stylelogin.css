@@ -7,7 +7,6 @@
 .loginform {
     display: flex;
     flex-direction: column;
-    width: 300px;
 }
 .login-container h2 {
     margin-bottom: 20px;

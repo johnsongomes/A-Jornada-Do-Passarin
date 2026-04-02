@@ -4,3 +4,13 @@
     align-items: center;
     padding: 20px;
 }
+#titulo {
+    font-size: 36px;
+    color: #fff;
+    margin-bottom: 20px;
+}
+p {
+    font-size: 18px;
+    color: #fff;
+    margin-bottom: 20px;
+}

@@ -6,7 +6,7 @@
     background-color: #f5f5f5;
     min-height: 100vh;
 }
-.dashboard-container #dashboard-Button {
+.dashboard-container #dashboardButton {
     margin-top: 20px;
     padding: 10px 20px;
     font-size: 1em;

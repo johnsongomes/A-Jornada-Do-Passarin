@@ -1,197 +1,170 @@
+
 /* =========================================================
-   PASSARINHO JORNADA v3.1 — COM IMAGENS ORIGINAIS
+   PASSARINHO JORNADA v3.3
    ========================================================= */
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// --- CONFIGURAÇÃO DE ASSETS (IMAGENS E SONS) ---
-// Coloque seus arquivos exatamente com esses nomes na mesma pasta,
-// ou ajuste os caminhos abaixo.
-// Se preferir subpastas, use "./img/nome.png" e "./sound/nome.wav".
+// --- ASSETS ---
 const IMAGE_ASSETS = {
-  // Fundos
-  bgPlay:     "../GAME/Play/images/Sterne (Landscape).png",
-  bgGame:     "../GAME/Scene0/images/Pyramids.png",
-  bgGameOver: "../GAME/GAMEover/images/Cloudy sky.png",
-
-  // Botões e telas
-  btnPlay:        "../GAME/Play/images/Btn-Play.png",
-  btnPlayAgain:   "../GAME/GAMEover/images/Btn-Play-again.png",
-  btnBack:        "../GAME/GAMEover/images/Btn-back.png",
-  btnSair:        "../GAME/GAMEover/images/incorrect.png", // ou "incorrect2.png"
-  gameOverImg:    "../GAME/GAMEover/images/Game Over.png",
-
-  // Pássaro
-  birdIdle1: "/GAME/Play/images/bird_idle-1.png",
-  birdIdle2: "/GAME/Play/images/bird_idle-2.png",
-  birdFly1:  "/GAME/Scene0/images/Bird fly-1.png",
-  birdFly2:  "/GAME/Scene0/images/Bird fly-2.png",
-  birdFly3:  "/GAME/Scene0/images/Bird fly-3.png",
-
-  // Obstáculos
-  tree1: "/GAME/Scene0/images/tree-6.png",   // arvore
-  tree2: "/GAME/Scene0/images/tree-4.png",   // arvore2
-  tree3: "/GAME/Scene0/images/tree-7.png",   // arvore3
-  plane: "/GAME/Scene0/images/plane.png",    // aviao
-
-  // Itens e NPCs
-  heart:   "/GAME/Scene0/images/Card.png",   // Coração
-  owl1:    "/GAME/Scene0/images/owl.png",    // coruja
-  owl2:    "/GAME/Scene0/images/owl-3.png",  // coruja (outra pose)
-
-  // Sons (opcional — o jogo funciona sem eles)
+  bgPlay:       "../GAME/Play/images/Sterne (Landscape).png",
+  bgGame:       "../GAME/Scene0/images/Pyramids.png",
+  bgGameOver:   "../GAME/GAMEover/images/Cloudy sky.png",
+  btnPlay:      "../GAME/Play/images/Btn-Play.png",
+  btnPlayAgain: "../GAME/GAMEover/images/Btn-Play-again.png",
+  btnBack:      "../GAME/GAMEover/images/Btn-back.png",
+  btnSair:      "../GAME/GAMEover/images/incorrect.png",
+  gameOverImg:  "../GAME/GAMEover/images/Game Over.png",
+  birdIdle1:    "../GAME/Play/images/bird_idle-1.png",
+  birdIdle2:    "../GAME/Play/images/bird_idle-2.png",
+  birdFly1:     "../GAME/Scene0/images/Bird fly-1.png",
+  birdFly2:     "../GAME/Scene0/images/Bird fly-2.png",
+  birdFly3:     "../GAME/Scene0/images/Bird fly-3.png",
+  tree1:        "../GAME/Scene0/images/tree-6.png",
+  tree2:        "../GAME/Scene0/images/tree-4.png",
+  tree3:        "../GAME/Scene0/images/tree-7.png",
+  plane:        "../GAME/Scene0/images/plane.png",
+  heart:        "../GAME/Scene0/images/Card.png",
+  owl1:         "../GAME/Scene0/images/owl.png",
+  owl2:         "../GAME/Scene0/images/owl-3.png",
 };
+
 const SOUND_ASSETS = {
-  // Sons (opcional — o jogo funciona sem eles)
-  sndBird:   "/GAME/Scene0/sounds/Bird0.wav",
-  sndDrip:   "/GAME/Scene0/sounds/DripDrop.mpga",
-  sndBing:   "/GAME/Scene0/sounds/bing0.mpga",
-  sndLose:   "/GAME/Scene0/sounds/lose.mpga",
-  sndTweet:  "/GAME/Scene0/sounds/tweet.mpga",
-  sndBeep:   "/GAME/Scene0/sounds/beep.mpga"
+  sndBird:  "../GAME/Scene0/sounds/Bird0.wav",
+  sndDrip:  "../GAME/Scene0/sounds/DripDrop.mpga",
+  sndBing:  "../GAME/Scene0/sounds/bing0.mpga",
+  sndLose:  "../GAME/Scene0/sounds/lose.mpga",
+  sndTweet: "../GAME/Scene0/sounds/tweet.mpga",
+  sndBeep:  "../GAME/Scene0/sounds/beep.mpga",
 };
 
-// Objeto que guardará as imagens carregadas
 const images = {};
 const sounds = {};
 
-// --- CARREGADOR DE ASSETS ---
-let loadedCount = 0;
-let totalToLoad = 0;
+// --- UTILITÁRIOS ---
 
-// Conta total de imagens
-//totalToLoad = Object.keys(ASSETS).length;
-totalToLoad = Object.keys(IMAGE_ASSETS).length;
-
-function updateLoader(percent) {
-  document.getElementById('loaderBar').style.width = percent + '%';
+function playSound(key) {
+  const s = sounds[key];
+  if (!s) return;
+  try { s.currentTime = 0; s.play().catch(() => {}); } catch (_) {}
 }
 
-/*function loadAssets() {
+function checkCollision(a, b) {
+  return (a.x < b.x + b.w && a.x + a.w > b.x &&
+          a.y < b.y + b.h && a.y + a.h > b.y);
+}
 
-  return new Promise((resolve, reject) => {
+function pointInRect(px, py, rx, ry, rw, rh) {
+  return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
+}
 
-    for (const key in ASSETS) {
-      const path = ASSETS[key];
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    this.beginPath();
+    this.moveTo(x + r, y);
+    this.arcTo(x + w, y, x + w, y + h, r);
+    this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r);
+    this.arcTo(x, y, x + w, y, r);
+    this.closePath();
+    return this;
+  };
+}
 
-      // 👉 SE FOR SOM
-      if (path.includes('.mp3') || path.includes('.wav') || path.includes('.mpga')) {
-        const audio = new Audio();
-        audio.src = path;
-
-        audio.oncanplaythrough = () => {
-          sounds[key] = audio;
-          loadedCount++;
-          updateLoader((loadedCount / totalToLoad) * 100);
-          if (loadedCount === totalToLoad) resolve();
-        };
-
-        audio.onerror = () => {
-          console.warn("Erro ao carregar som:", path);
-          sounds[key] = null;
-          loadedCount++;
-          if (loadedCount === totalToLoad) resolve();
-        };
-
-      } else {
-        // 👉 IMAGEM (igual já tava)
-        const img = new Image();
-        img.src = path;
-
-        img.onload = () => {
-          images[key] = img;
-          loadedCount++;
-          updateLoader((loadedCount / totalToLoad) * 100);
-          if (loadedCount === totalToLoad) resolve();
-        };
-
-        img.onerror = () => {
-          console.warn("Não foi possível carregar:", path);
-          images[key] = null;
-          loadedCount++;
-          if (loadedCount === totalToLoad) resolve();
-        };
-      }
-    }
-    setTimeout(() => {
-    console.warn("Forçando início (timeout)");
-    resolve();
-    }, 5000);
-  });
-
-}*/
+// --- CARREGAMENTO ---
 
 function loadAssets() {
+  const keys = Object.keys(IMAGE_ASSETS);
+  if (keys.length === 0) return Promise.resolve();
+
+  let loaded = 0;
+  const total = keys.length;
+
+  const updateBar = () => {
+    const el = document.getElementById('loaderBar');
+    if (el) el.style.width = ((loaded / total) * 100) + '%';
+  };
+
   return new Promise((resolve) => {
-    for (const key in IMAGE_ASSETS) {
+    const timeout = setTimeout(() => {
+      console.warn('Loader timeout — iniciando com assets parciais.');
+      hideLoader(); resolve();
+    }, 8000);
+
+    keys.forEach((key) => {
       const img = new Image();
       img.src = IMAGE_ASSETS[key];
-
-      img.onload = () => {
-        images[key] = img;
-        loadedCount++;
-
-        updateLoader((loadedCount / totalToLoad) * 100);
-
-        if (loadedCount === totalToLoad) {
-          document.getElementById('loading').style.display = 'none';
-          resolve();
-        }
+      const done = () => {
+        loaded++; updateBar();
+        if (loaded === total) { clearTimeout(timeout); hideLoader(); resolve(); }
       };
-
-      img.onerror = () => {
-        console.warn("Erro imagem:", IMAGE_ASSETS[key]);
-        images[key] = null;
-        loadedCount++;
-
-        if (loadedCount === totalToLoad) resolve();
-      };
-    }
+      img.onload  = () => { images[key] = img;  done(); };
+      img.onerror = () => { console.warn('Imagem não encontrada:', IMAGE_ASSETS[key]); images[key] = null; done(); };
+    });
   });
 }
 
 function loadSounds() {
   for (const key in SOUND_ASSETS) {
     const audio = new Audio(SOUND_ASSETS[key]);
+    audio.preload = 'auto';
     sounds[key] = audio;
   }
 }
 
-// --- INICIALIZA O JOGO DEPOIS DE CARREGAR ---
-loadAssets().then(() => {
-  loadSounds();
-  initGame();
-  requestAnimationFrame(loop);
-});
+function hideLoader() {
+  const el = document.getElementById('loading');
+  if (el) el.style.display = 'none';
+}
 
 // --- INPUT ---
 let inputPressed = false;
+let clickX = 0, clickY = 0;
+
 canvas.addEventListener('mousedown', (e) => {
   inputPressed = true;
-  // Se quiser coordenadas exatas do clique (para botões), use e.offsetX, e.offsetY
+  const rect = canvas.getBoundingClientRect();
+  clickX = e.clientX - rect.left;
+  clickY = e.clientY - rect.top;
 });
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
   inputPressed = true;
-});
+  const rect = canvas.getBoundingClientRect();
+  const t = e.touches[0];
+  clickX = t.clientX - rect.left;
+  clickY = t.clientY - rect.top;
+}, { passive: false });
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' || e.code === 'ArrowUp') inputPressed = true;
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    inputPressed = true;
+    clickX = -1; clickY = -1;
+  }
 });
 
-// --- ESTADOS E VARIÁVEIS ---
+// --- ESTADOS ---
 const SCENE = { PLAY: 'PLAY', GAME: 'GAME', GAMEOVER: 'GAMEOVER' };
 let currentScene = SCENE.PLAY;
 
-let gameVars = {
-  contador: 0, distanciap: 0, meta: 0, passada: 0,
-  colisao: false, coracaovida: false, transicao: 0,
-  kmMode: false, morred: '',
-  invencivel: false,
-invencivelTimer: 0
-};
+let gameVars = {};
 
-// --- CLASSES DE OBJETOS ---
+function makeGameVars() {
+  return {
+    contador: 0,
+    distanciap: 0,
+    meta: 0,
+    passada: 0,
+    colisao: false,
+    kmMode: false,
+    kmModeTimer: 0,
+    invencivel: false,
+    invencivelTimer: 0,
+  };
+}
+
+// --- CLASSES ---
 
 class Bird {
   constructor() {
@@ -199,113 +172,132 @@ class Bird {
     this.y = canvas.height / 2 + 50;
     this.vy = 0;
     this.gravity = 0.25;
-    this.jump = -7;
-    this.size = 60; // tamanho de desenho (ajuste conforme sua imagem)
-    this.lookIndex = 0; // 0,1,2 para fly1,fly2,fly3
+    this.jumpForce = -7;
+    this.size = 60;
+    this.frameIndex = 0;
     this.lastSwitch = 0;
+  }
+
+  flap() {
+    this.vy = this.jumpForce;
+    this.frameIndex = 2;
+    playSound('sndTweet');
   }
 
   update() {
     this.vy += this.gravity;
-    this.y += this.vy;
+    this.y  += this.vy;
 
-    // Limites
     if (this.y > canvas.height - 40) {
       this.y = canvas.height - 40;
       this.vy = 0;
-      if (!gameVars.coracaovida) triggerGameOver();
+      triggerGameOver();
     }
     if (this.y < 20) { this.y = 20; this.vy = 0; }
 
-    // Input
     if (inputPressed) {
-      this.vy = this.jump;
+      this.flap();
       inputPressed = false;
-      // Troca para "asa batendo"
-      this.lookIndex = 2; // fly3 (pulo)
     }
 
-    // Animação de asas
-    if (frameCount - this.lastSwitch > 10) { // a cada 10 frames
-      this.lookIndex = (this.lookIndex + 1) % 3;
+    if (frameCount - this.lastSwitch > 10) {
+      this.frameIndex = (this.frameIndex + 1) % 3;
       this.lastSwitch = frameCount;
     }
   }
 
   draw() {
-    // Escolhe imagem: se estiver no menu usa idle, no jogo usa fly
     let imgKey;
     if (currentScene === SCENE.PLAY) {
-      // alterna idle1/idle2
       imgKey = (frameCount % 30 < 15) ? 'birdIdle1' : 'birdIdle2';
     } else {
-      const map = ['birdFly1', 'birdFly2', 'birdFly3'];
-      imgKey = map[this.lookIndex];
+      imgKey = ['birdFly1', 'birdFly2', 'birdFly3'][this.frameIndex];
     }
+
+    if (gameVars.invencivel && frameCount % 10 < 5) ctx.globalAlpha = 0.4;
+
     const img = images[imgKey];
     if (img) {
-      ctx.drawImage(img, this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+      ctx.drawImage(img, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
     } else {
-      // fallback: desenho simples
       ctx.fillStyle = '#FFD700';
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size/2, 0, Math.PI*2);
+      ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.globalAlpha = 1;
   }
 
   getBounds() {
-    return { x: this.x - 25, y: this.y - 25, w: 50, h: 50 };
+    const margin = 10;
+    return {
+      x: this.x - this.size / 2 + margin,
+      y: this.y - this.size / 2 + margin,
+      w: this.size - margin * 2,
+      h: this.size - margin * 2,
+    };
   }
 }
 
+// ─── OBSTÁCULOS ───────────────────────────────────────────
+// AVIÃO: vem da ESQUERDA para a DIREITA (speedX positivo), sprite original sem espelho
+// Árvores: vêm da DIREITA para a ESQUERDA (speedX negativo)
+
+const OBSTACLE_CONFIG = {
+  tree:  { imgKey: 'tree1', w: 80,  h: 200, groundOffset: 200 },
+  tree2: { imgKey: 'tree2', w: 80,  h: 210, groundOffset: 210 },
+  tree3: { imgKey: 'tree3', w: 80,  h: 220, groundOffset: null },
+  plane: { imgKey: 'plane', w: 150, h: 75,  groundOffset: null },
+};
+
 class Obstacle {
   constructor(type, x) {
-    this.type = type; // 'tree', 'tree2', 'tree3', 'plane'
-    this.x = x;
-    this.y = 0;
-    this.width = 80;
-    this.height = 100;
-    this.speedX = -2 - Math.random() * 1.5; // velocidade variável
+    this.type   = type;
+    const cfg   = OBSTACLE_CONFIG[type];
+    this.imgKey = cfg.imgKey;
+    this.width  = cfg.w;
+    this.height = cfg.h;
 
-    // Ajusta posição conforme tipo (conforme XML)
-    if (type === 'tree') {
-      this.y = canvas.height - 200;
-      this.imgKey = 'tree1';
-      this.width = 80; this.height = 200;
-    } else if (type === 'tree2') {
-      this.y = canvas.height - 210;
-      this.imgKey = 'tree2';
-      this.width = 80; this.height = 210;
+    if (type === 'plane') {
+      // Avião entra pela ESQUERDA e vai para a DIREITA — sprite original
+      this.x      = -this.width - 20;
+      this.y      = 80 + Math.random() * 200;
+      this.speedX = +(2.5 + Math.random() * 1.5); // positivo → direita
     } else if (type === 'tree3') {
-      this.y = canvas.height - 240 - Math.random() * 100;
-      this.imgKey = 'tree3';
-      this.width = 80; this.height = 220;
-    } else if (type === 'plane') {
-      this.y = -100 + Math.random() * 200;
-      this.x = canvas.width - 960; // começa mais à direita
-      this.imgKey = 'plane';
-      this.width = 150; this.height = 75;
-      this.speedX = 3 - Math.random() * 1.5;
+      this.x      = x !== undefined ? x : canvas.width + 50;
+      this.y      = canvas.height - 140 - Math.random() * 100;
+      this.speedX = -(2 + Math.random() * 1.5);
+    } else {
+      this.x      = x !== undefined ? x : canvas.width + 50;
+      this.y      = canvas.height - cfg.groundOffset;
+      this.speedX = -(2 + Math.random() * 1.5);
     }
   }
 
   update() {
     this.x += this.speedX;
-    if (this.x < -150) {
-      // Reaparece do outro lado (clone infinito)
-      this.x = canvas.width + 50;
-      if (this.type === 'tree3') this.y = canvas.height - 140 - Math.random() * 100;
-      if (this.type === 'plane') this.y = 80 + Math.random() * 200;
+
+    if (this.type === 'plane') {
+      // Sai pela direita → reaparece pela esquerda
+      if (this.x > canvas.width + 20) {
+        this.x = -this.width - 20;
+        this.y = 80 + Math.random() * 200;
+      }
+    } else {
+      // Árvores saem pela esquerda → reaparecem pela direita
+      if (this.x < -this.width - 20) {
+        this.x = canvas.width + 50 + Math.random() * 200;
+        if (this.type === 'tree3') this.y = canvas.height - 140 - Math.random() * 100;
+      }
     }
   }
 
   draw() {
     const img = images[this.imgKey];
     if (img) {
+      // Sprite desenhado nas dimensões originais, sem transformações
       ctx.drawImage(img, this.x, this.y, this.width, this.height);
     } else {
-      // fallback
       ctx.fillStyle = this.type === 'plane' ? '#708090' : '#228B22';
       ctx.fillRect(this.x, this.y, this.width, this.height);
     }
@@ -316,55 +308,67 @@ class Obstacle {
   }
 }
 
+// ─── CORAÇÃO ──────────────────────────────────────────────
+
 class Heart {
-  constructor() {
+  constructor() { this.reset(); }
+
+  reset() {
     this.visible = false;
-    this.x = canvas.width - 950;
-    this.y = canvas.height - 540;
-    this.size = 50;
-    this.timer = 0; // 30 segundos = 1800 frames (60fps)
+    this.x = canvas.width  / 2;
+    this.y = canvas.height / 2 - 50;
+    this.size  = 50;
+    this.timer = 0;
   }
 
   show() {
     this.visible = true;
+    this.x = 100 + Math.random() * (canvas.width  - 200);
+    this.y = 100 + Math.random() * (canvas.height - 200);
     this.timer = 30 * 60;
+
+    // Invencibilidade começa ao aparecer
+    gameVars.invencivel      = true;
+    gameVars.invencivelTimer = 30 * 60;
+    playSound('sndDrip');
   }
 
   update() {
     if (!this.visible) return;
-    this.timer--;
-    if (this.timer <= 0) {
-      this.visible = false;
-    }
+    if (--this.timer <= 0) this.visible = false;
   }
 
   draw() {
-    if (gameVars.invencivel) {
-        ctx.globalAlpha = (frameCount % 10 < 5) ? 0.5 : 1;
-    }
     if (!this.visible) return;
+
+    const pulse = 1 + 0.08 * Math.sin(frameCount * 0.15);
+    const s  = this.size * pulse;
+    const ox = (s - this.size) / 2;
+
     const img = images.heart;
     if (img) {
-      ctx.drawImage(img, this.x, this.y, this.size, this.size);
+      ctx.drawImage(img, this.x - ox, this.y - ox, s, s);
     } else {
-      // fallback coração
       ctx.fillStyle = '#FF0000';
       ctx.beginPath();
-      const s = this.size;
-      ctx.moveTo(this.x + s/2, this.y + s/4);
-      ctx.quadraticCurveTo(this.x, this.y, this.x, this.y + s/2);
-      ctx.quadraticCurveTo(this.x + s/2, this.y + s*3/4, this.x + s, this.y + s/2);
-      ctx.quadraticCurveTo(this.x + s, this.y, this.x + s/2, this.y + s/4);
+      const hx = this.x - ox, hy = this.y - ox;
+      ctx.moveTo(hx + s/2, hy + s/4);
+      ctx.quadraticCurveTo(hx,     hy,           hx,     hy + s/2);
+      ctx.quadraticCurveTo(hx+s/2, hy + s*0.85,  hx + s, hy + s/2);
+      ctx.quadraticCurveTo(hx + s, hy,            hx+s/2, hy + s/4);
       ctx.fill();
     }
-    ctx.globalAlpha = 1;
+  }
+
+  getBounds() {
+    return { x: this.x, y: this.y, w: this.size, h: this.size };
   }
 }
 
 class Owl {
   constructor() {
     this.visible = false;
-    this.x = canvas.width - 200;
+    this.x = canvas.width  - 200;
     this.y = canvas.height - 200;
     this.timer = 0;
     this.bubbleTimer = 0;
@@ -372,364 +376,299 @@ class Owl {
 
   show() {
     this.visible = true;
-    this.timer = 300; // 5 segundos
-    this.bubbleTimer = 300;
+    this.timer = this.bubbleTimer = 300;
   }
 
   update() {
     if (!this.visible) return;
-    this.timer--;
-    this.bubbleTimer--;
-    if (this.timer <= 0) this.visible = false;
+    if (--this.timer <= 0) this.visible = false;
+    if (this.bubbleTimer > 0) this.bubbleTimer--;
   }
 
   draw() {
     if (!this.visible) return;
-    // Desenha coruja
+
     const img = (frameCount % 60 < 30) ? images.owl1 : images.owl2;
     if (img) {
       ctx.drawImage(img, this.x, this.y, 80, 80);
     } else {
       ctx.fillStyle = '#8B4513';
       ctx.beginPath();
-      ctx.arc(this.x + 40, this.y + 40, 30, 0, Math.PI*2);
+      ctx.arc(this.x + 40, this.y + 40, 30, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Balão de fala (aparece nos primeiros segundos)
     if (this.bubbleTimer > 0) {
+      const bx = this.x - 160, by = this.y - 80;
       ctx.fillStyle = 'white';
       ctx.strokeStyle = 'black';
       ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(this.x - 150, this.y - 100, 200, 60, 10);
-      ctx.fill();
-      ctx.stroke();
+      ctx.beginPath(); ctx.roundRect(bx, by, 220, 55, 10); ctx.fill(); ctx.stroke();
       ctx.fillStyle = 'black';
-      ctx.font = '14px Arial';
-      ctx.fillText("Você ganhou um coração!", this.x -  -17, this.y - 70);
+      ctx.font = '13px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText('Você ficou invencível por 30s!', bx + 10, by + 32);
     }
   }
 }
 
-// --- GERENCIADOR DO JOGO ---
-let bird, obstacles, heart, owl, frameCount = 0;
-
-function spawnObstacle() {
-  const rand = Math.random();
-  let type;
-  if (rand < 0.4) type = 'tree';
-  else if (rand < 0.7) type = 'tree2';
-  else if (rand < 0.9) type = 'tree3';
-  else type = 'plane';
-  obstacles.push(new Obstacle(type, canvas.width + 50));
-}
+// --- ESTADO DO JOGO ---
+let bird, obstacles, heart, owl;
+let frameCount = 0;
 
 function resetGameVars() {
-  gameVars = {
-    contador: 0, distanciap: 0, meta: 0, passada: 0,
-    colisao: false, transicao: 0,
-    kmMode: false, morred: ''
-  };
+  gameVars  = makeGameVars();
   obstacles = [];
-  bird = new Bird();
+  bird  = new Bird();
   heart = new Heart();
-  owl = new Owl();
-  for (let i = 0; i < 3; i++) spawnObstacle();
+  owl   = new Owl();
+  for (let i = 0; i < 3; i++) spawnObstacle(canvas.width + i * 350);
+  obstacles.push(new Obstacle('plane'));
 }
 
 function startGame() {
   currentScene = SCENE.GAME;
+  frameCount   = 0;
   resetGameVars();
 }
 
 function triggerGameOver() {
   if (gameVars.colisao) return;
   gameVars.colisao = true;
+  playSound('sndLose');
   currentScene = SCENE.GAMEOVER;
 }
 
 function backToMenu() {
   currentScene = SCENE.PLAY;
+  inputPressed = false;
 }
 
-// --- LÓGICA DE CADA CENA ---
+function spawnObstacle(x) {
+  const rand = Math.random();
+  let type;
+  if      (rand < 0.40) type = 'tree';
+  else if (rand < 0.70) type = 'tree2';
+  else                  type = 'tree3';
+  obstacles.push(new Obstacle(type, x !== undefined ? x : canvas.width + 50));
+}
+
+// --- LÓGICA ---
 
 function updateGameplay() {
-  bird.update()
-    if (inputPressed) {
-      this.vy = this.jump;
-      inputPressed = false;
+  bird.update();
 
-      if (sounds.sndTweet) {
-       sounds.sndTweet.currentTime = 0;
-       sounds.sndTweet.play();
-      }
-    };
-
-  // Spawn de obstáculos
   if (frameCount % 120 === 0) spawnObstacle();
 
-  // Atualiza obstáculos e colisões
-  obstacles.forEach(obs => {
+  obstacles.forEach((obs) => {
     obs.update();
-    if (checkCollision(bird.getBounds(), obs.getBounds())) {
-        if (!gameVars.invencivel) {
-            triggerGameOver();
-        }
+    if (!gameVars.invencivel && checkCollision(bird.getBounds(), obs.getBounds())) {
+      triggerGameOver();
     }
   });
 
-  // Itens
-  if (heart) heart.update();
-  if (owl) owl.update();
+  heart.update();
+  owl.update();
 
-  // Pontuação
   if (frameCount % 5 === 0) gameVars.contador++;
 
   if (gameVars.contador >= 1000) {
     gameVars.distanciap++;
-    gameVars.contador = 0;
-    gameVars.kmMode = true;
-    setTimeout(() => gameVars.kmMode = false, 1000);
+    gameVars.contador    = 0;
+    gameVars.kmMode      = true;
+    gameVars.kmModeTimer = 60;
+    playSound('sndBing');
   }
+  if (gameVars.kmMode && --gameVars.kmModeTimer <= 0) gameVars.kmMode = false;
 
-  // Meta de 2000
+  // Meta de 2 000 frames → coração aparece (e já ativa invencibilidade)
   gameVars.meta++;
   if (gameVars.meta >= 2000) {
     gameVars.passada += gameVars.meta;
     gameVars.meta = 0;
-    if (!heart.visible) {
-      heart.show();
-    }
-    if (!owl.visible) owl.show();
+    if (!heart.visible) { heart.show(); owl.show(); }
   }
 
-  // Colisão com coração
-  if (heart.visible && checkCollision(bird.getBounds(), {
-    x: heart.x,
-    y: heart.y,
-    w: heart.size,
-    h: heart.size
-  })) {
+  // Encostar no coração só remove o ícone (invencibilidade já está ativa)
+  if (heart.visible && checkCollision(bird.getBounds(), heart.getBounds())) {
     heart.visible = false;
-
-    gameVars.invencivel = true;
-    gameVars.invencivelTimer = 30 * 60; // 30 segundos
-
-    console.log("INVENCÍVEL POR 30 SEGUNDOS!");
   }
-  if (gameVars.invencivel) {
-    gameVars.invencivelTimer--;
 
-  if (gameVars.invencivelTimer <= 0) {
+  if (gameVars.invencivel && --gameVars.invencivelTimer <= 0) {
     gameVars.invencivel = false;
   }
 }
-}
+
+// --- DESENHO ---
 
 function drawBackground(scene) {
-  let img;
-  if (scene === SCENE.PLAY) img = images.bgPlay;
-  else if (scene === SCENE.GAME) img = images.bgGame;
-  else img = images.bgGameOver;
-
+  const key = scene === SCENE.PLAY ? 'bgPlay' :
+              scene === SCENE.GAME ? 'bgGame' : 'bgGameOver';
+  const img = images[key];
   if (img) {
-    // Desenha a imagem cobrindo o canvas (se for maior, redimensiona)
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   } else {
-    // Fallback gradiente
     const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    g.addColorStop(0, scene === SCENE.PLAY ? '#87CEEB' : '#FFDAC1');
-    g.addColorStop(1, scene === SCENE.PLAY ? '#E0F7FA' : '#FFD700');
+    if      (scene === SCENE.PLAY)  { g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#E0F7FA'); }
+    else if (scene === SCENE.GAME)  { g.addColorStop(0,'#FFF3B0'); g.addColorStop(1,'#E9C46A'); }
+    else                            { g.addColorStop(0,'#FFDAC1'); g.addColorStop(1,'#FF6B6B'); }
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 }
 
+function getPlayButtons() {
+  const btnW = 200, btnH = 60, cx = canvas.width / 2;
+  const playY = canvas.height / 2 + 150;
+  return {
+    play: { x: cx - btnW / 2, y: playY,      w: btnW, h: btnH },
+    sair: { x: cx - btnW / 2, y: playY + 80, w: btnW, h: 50   },
+  };
+}
+
+function getGameOverButtons() {
+  const bw = 250, bh = 50, cx = canvas.width / 2;
+  return {
+    again: { x: cx - bw / 2, y: canvas.height / 2 + 80,  w: bw, h: bh },
+    back:  { x: cx - bw / 2, y: canvas.height / 2 + 140, w: bw, h: bh },
+  };
+}
+
 function drawPlayScene() {
   drawBackground(SCENE.PLAY);
+  if (bird) bird.draw();
 
-  // Título (pode ser imagem ou texto — aqui usamos texto para garantir legibilidade)
-  ctx.fillStyle = '#FF00BB';
-  ctx.font = 'bold 70px Arial';
   ctx.textAlign = 'center';
-  ctx.shadowColor = 'black';
-  ctx.shadowBlur = 4;
-  ctx.fillText('jornada do passarim', canvas.width/2, canvas.height/2 - 50);
+  ctx.fillStyle = '#FF00BB';
+  ctx.font = 'bold 64px Arial';
+  ctx.shadowColor = 'black'; ctx.shadowBlur = 5;
+  ctx.fillText('Jornada do Passarim', canvas.width / 2, canvas.height / 2 - 60);
   ctx.shadowBlur = 0;
 
   ctx.fillStyle = '#FB3C57';
-  ctx.font = '30px Arial';
-  ctx.fillText('by Johnson Gomes', canvas.width/2, canvas.height/2 + 100);
+  ctx.font = '26px Arial';
+  ctx.fillText('by Johnson Gomes', canvas.width / 2, canvas.height / 2 + 90);
 
-  // Botão Play (imagem ou fallback)
-  const btnW = 200, btnH = 60;
-  const btnX = canvas.width/2 - btnW/2;
-  const btnY = canvas.height/2 + 150;
+  const { play, sair } = getPlayButtons();
+
   if (images.btnPlay) {
-    ctx.drawImage(images.btnPlay, btnX, btnY, btnW, btnH);
+    ctx.drawImage(images.btnPlay, play.x, play.y, play.w, play.h);
   } else {
     ctx.fillStyle = '#4CAF50';
-    ctx.beginPath();
-    ctx.roundRect(btnX, btnY, btnW, btnH, 15);
-    ctx.fill();
-    ctx.fillStyle = 'white';
-    ctx.font = '30px Arial';
-    ctx.fillText('▶ Play', canvas.width/2, btnY + 38);
+    ctx.beginPath(); ctx.roundRect(play.x, play.y, play.w, play.h, 15); ctx.fill();
+    ctx.fillStyle = 'white'; ctx.font = '28px Arial';
+    ctx.fillText('▶ Play', canvas.width / 2, play.y + 38);
   }
 
-  // Botão Sair
-  const sx = canvas.width/2 - btnW/2;
-  const sy = btnY + 80;
   if (images.btnSair) {
-    ctx.drawImage(images.btnSair, sx, sy, btnW, 50);
+    ctx.drawImage(images.btnSair, sair.x, sair.y, sair.w, sair.h);
   } else {
     ctx.fillStyle = '#f44336';
-    ctx.beginPath();
-    ctx.roundRect(sx, sy, btnW, 50, 10);
-    ctx.fill();
-    ctx.fillStyle = 'white';
-    ctx.font = '24px Arial';
-    ctx.fillText('✕ Sair', canvas.width/2, sy + 32);
+    ctx.beginPath(); ctx.roundRect(sair.x, sair.y, sair.w, sair.h, 10); ctx.fill();
+    ctx.fillStyle = 'white'; ctx.font = '24px Arial';
+    ctx.fillText('✕ Sair', canvas.width / 2, sair.y + 32);
   }
 
-  // Clique: se for dentro do botão Play, inicia; se for no Sair, volta (ou fecha)
-  // (Aqui simplificado: qualquer clique inicia o jogo)
   if (inputPressed) {
-    startGame();
+    if (pointInRect(clickX, clickY, play.x, play.y, play.w, play.h) || clickX < 0) startGame();
     inputPressed = false;
   }
 }
 
 function drawGameScene() {
   drawBackground(SCENE.GAME);
-
-  obstacles.forEach(o => o.draw());
+  obstacles.forEach((o) => o.draw());
   bird.draw();
-  if (heart) heart.draw();
-  if (owl) owl.draw();
+  heart.draw();
+  owl.draw();
 
-  // UI de pontuação
-  ctx.fillStyle = 'white';
-  ctx.font = 'bold 40px Arial';
-  ctx.textAlign = 'left';
+  ctx.textAlign   = 'left';
+  ctx.font        = 'bold 40px Arial';
   ctx.strokeStyle = 'black';
-  ctx.lineWidth = 3;
+  ctx.lineWidth   = 3;
+  ctx.fillStyle   = 'white';
 
-  if (gameVars.kmMode) {
-    ctx.strokeText(gameVars.distanciap + ' km', 50, 60);
-    ctx.fillText(gameVars.distanciap + ' km', 50, 60);
-  } else {
-    ctx.strokeText(gameVars.contador, 50, 60);
-    ctx.fillText(gameVars.contador, 50, 60);
-  }
+  const scoreText = gameVars.kmMode ? gameVars.distanciap + ' km' : String(gameVars.contador);
+  ctx.strokeText(scoreText, 50, 60); ctx.fillText(scoreText, 50, 60);
 
   ctx.textAlign = 'right';
-  ctx.strokeText('Dist: ' + gameVars.distanciap, canvas.width - 50, 60);
-  ctx.fillText('Dist: ' + gameVars.distanciap, canvas.width - 50, 60);
+  const distText = 'Dist: ' + gameVars.distanciap + ' km';
+  ctx.strokeText(distText, canvas.width - 50, 60); ctx.fillText(distText, canvas.width - 50, 60);
+
   if (gameVars.invencivel) {
-    ctx.fillStyle = 'yellow';
-    ctx.font = 'bold 30px Arial';
+    const secs = Math.ceil(gameVars.invencivelTimer / 60);
     ctx.textAlign = 'center';
-    ctx.fillText("INVENCÍVEL!", canvas.width / 2, 50);
+    ctx.fillStyle = 'gold';
+    ctx.font = 'bold 28px Arial';
+    ctx.fillText(`✨ INVENCÍVEL! ${secs}s`, canvas.width / 2, 55);
   }
 }
 
 function drawGameOverScene() {
   drawBackground(SCENE.GAMEOVER);
 
-  // Imagem "Game Over" centralizada (se houver)
   if (images.gameOverImg) {
-    ctx.drawImage(images.gameOverImg, canvas.width/2 - 200, 50, 400, 150);
+    ctx.drawImage(images.gameOverImg, canvas.width / 2 - 200, 40, 400, 150);
   }
 
-  // Painel
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(canvas.width/2 - 300, canvas.height/2 - 150, 600, 300);
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.beginPath();
+  ctx.roundRect(canvas.width / 2 - 300, canvas.height / 2 - 150, 600, 300, 20);
+  ctx.fill();
 
+  ctx.textAlign = 'center';
   ctx.fillStyle = '#F13670';
   ctx.font = 'bold 50px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2 - 80);
+  ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 80);
 
   ctx.fillStyle = 'white';
-  ctx.font = '30px Arial';
-  ctx.fillText('Distância percorrida:', canvas.width/2, canvas.height/2 - 20);
-  ctx.font = 'bold 40px Arial';
-  ctx.fillText(gameVars.distanciap + ' km', canvas.width/2, canvas.height/2 + 30);
+  ctx.font = '28px Arial';
+  ctx.fillText('Distância percorrida:', canvas.width / 2, canvas.height / 2 - 20);
+  ctx.font = 'bold 42px Arial';
+  ctx.fillText(gameVars.distanciap + ' km', canvas.width / 2, canvas.height / 2 + 35);
 
-  // Botão Play Again
-  const bw = 250, bh = 50;
+  const { again, back } = getGameOverButtons();
+
   if (images.btnPlayAgain) {
-    ctx.drawImage(images.btnPlayAgain, canvas.width/2 - bw/2, canvas.height/2 + 80, bw, bh);
+    ctx.drawImage(images.btnPlayAgain, again.x, again.y, again.w, again.h);
   } else {
     ctx.fillStyle = '#4CAF50';
-    ctx.beginPath();
-    ctx.roundRect(canvas.width/2 - bw/2, canvas.height/2 + 80, bw, bh, 10);
-    ctx.fill();
-    ctx.fillStyle = 'white';
-    ctx.font = '24px Arial';
-    ctx.fillText('▶ Play Again', canvas.width/2, canvas.height/2 + 108);
+    ctx.beginPath(); ctx.roundRect(again.x, again.y, again.w, again.h, 10); ctx.fill();
+    ctx.fillStyle = 'white'; ctx.font = '24px Arial';
+    ctx.fillText('▶ Jogar Novamente', canvas.width / 2, again.y + 32);
   }
 
-  // Botão Back
   if (images.btnBack) {
-    ctx.drawImage(images.btnBack, canvas.width/2 - bw/2, canvas.height/2 + 140, bw, bh);
+    ctx.drawImage(images.btnBack, back.x, back.y, back.w, back.h);
   } else {
     ctx.fillStyle = '#2196F3';
-    ctx.beginPath();
-    ctx.roundRect(canvas.width/2 - bw/2, canvas.height/2 + 140, bw, bh, 10);
-    ctx.fill();
-    ctx.fillStyle = 'white';
-    ctx.font = '24px Arial';
-    ctx.fillText('← Back', canvas.width/2, canvas.height/2 + 168);
+    ctx.beginPath(); ctx.roundRect(back.x, back.y, back.w, back.h, 10); ctx.fill();
+    ctx.fillStyle = 'white'; ctx.font = '24px Arial';
+    ctx.fillText('← Menu', canvas.width / 2, back.y + 32);
   }
 
   if (inputPressed) {
-    // Se clicar, reinicia o jogo (simplificado)
-    startGame();
+    if (pointInRect(clickX, clickY, again.x, again.y, again.w, again.h) || clickX < 0) startGame();
+    else if (pointInRect(clickX, clickY, back.x, back.y, back.w, back.h)) backToMenu();
     inputPressed = false;
   }
 }
 
-function checkCollision(a, b) {
-  return (a.x < b.x + b.w && a.x + a.w > b.x &&
-          a.y < b.y + b.h && a.y + a.h > b.y);
-}
-
-// --- LOOP PRINCIPAL ---
-function loop(timestamp) {
+// --- LOOP ---
+function loop() {
   frameCount++;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (currentScene === SCENE.PLAY) drawPlayScene();
-  else if (currentScene === SCENE.GAME) {
-    updateGameplay();
-    drawGameScene();
-  } else if (currentScene === SCENE.GAMEOVER) drawGameOverScene();
+  if      (currentScene === SCENE.PLAY)     drawPlayScene();
+  else if (currentScene === SCENE.GAME)   { updateGameplay(); drawGameScene(); }
+  else if (currentScene === SCENE.GAMEOVER) drawGameOverScene();
 
   requestAnimationFrame(loop);
 }
 
-// Adiciona roundRect se necessário
-if (!CanvasRenderingContext2D.prototype.roundRect) {
-  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-    if (w < 2 * r) r = w / 2;
-    if (h < 2 * r) r = h / 2;
-    this.beginPath();
-    this.moveTo(x + r, y);
-    this.arcTo(x + w, y, x + w, y + h, r);
-    this.arcTo(x + w, y + h, x, y + h, r);
-    this.arcTo(x, y + h, x, y, r);
-    this.arcTo(x, y, x + w, y, r);
-    this.closePath();
-    return this;
-  };
-
-}
-
-
-function initGame() {
-  // nada mais a fazer — assets já carregados
-}
+// --- BOOT ---
+loadAssets().then(() => {
+  loadSounds();
+  bird = new Bird();
+  requestAnimationFrame(loop);
+});

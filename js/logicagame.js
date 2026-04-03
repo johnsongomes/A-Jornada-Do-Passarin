@@ -129,32 +129,23 @@ function hideLoader() {
   if (el) el.style.display = 'none';
 }
 
-// ─── INPUT ────────────────────────────────────────────────
-// Normaliza coordenadas do clique/toque para o espaço interno do canvas,
-// mesmo quando ele é escalado via CSS (tela cheia, zoom, etc.)
-const Input = {
-  pressed: false,
-  x: 0, y: 0,
-  consume() { this.pressed = false; },
-  set(clientX, clientY) {
-    this.pressed = true;
-    if (clientX < 0) { this.x = -1; this.y = -1; return; } // teclado
-    const r     = canvas.getBoundingClientRect();
-    // scaleX/scaleY: razão entre tamanho real do canvas e o tamanho CSS exibido
-    const scaleX = canvas.width  / r.width;
-    const scaleY = canvas.height / r.height;
-    this.x = (clientX - r.left) * scaleX;
-    this.y = (clientY - r.top)  * scaleY;
-  },
-};
+// --- INPUT ---
+let inputPressed = false;
+let clickX = 0, clickY = 0;
 
 canvas.addEventListener('mousedown', (e) => {
-  Input.set(e.clientX, e.clientY);
+  inputPressed = true;
+  const rect = canvas.getBoundingClientRect();
+  clickX = e.clientX - rect.left;
+  clickY = e.clientY - rect.top;
 });
 canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
+  inputPressed = true;
+  const rect = canvas.getBoundingClientRect();
   const t = e.touches[0];
-  Input.set(t.clientX, t.clientY);
+  clickX = t.clientX - rect.left;
+  clickY = t.clientY - rect.top;
 }, { passive: false });
 // touchend também captura o último toque solto (cobre casos de tela cheia no iOS)
 canvas.addEventListener('touchend', (e) => {
@@ -466,117 +457,57 @@ class Heart {
       ctx.fill();
     }
   }
-  getBounds() { return { x: this.x, y: this.y, w: this.size, h: this.size }; }
+
+  getBounds() {
+    return { x: this.x, y: this.y, w: this.size, h: this.size };
+  }
 }
 
-// ─── POWER-UPS ────────────────────────────────────────────
-const POWERUP_TYPES = {
-  shield:      { color: '#00BFFF', label: '🛡️',  duration: 10 * 60 },
-  slowmo:      { color: '#9B59B6', label: '🐢',   duration: 8  * 60 },
-  doubleScore: { color: '#F1C40F', label: '⭐',   duration: 12 * 60 },
-};
-
-class PowerUp {
-  constructor() { this.reset(); }
-
-  reset() {
-    this.visible = false;
-    this.x       = canvas.width + 80; // nasce fora da tela pela direita
-    this.y       = 0;
-    this.type    = '';
-    this.speedX  = 0;
-    this.active  = false;
-  }
-
-  // gameSpeed é passado para que a velocidade acompanhe a dificuldade
-  show(gameSpeed) {
-    const types  = Object.keys(POWERUP_TYPES);
-    this.type    = types[Math.floor(Math.random() * types.length)];
-    this.visible = true;
-    this.active  = true;
-    this.x       = canvas.width + 80;
-    this.y       = randomBetween(80, canvas.height - 150);
-    this.speedX  = -(gameSpeed * 0.75); // um pouco mais devagar que os obstáculos
-  }
-
-  update(gameSpeed) {
-    if (!this.visible) return;
-    this.speedX = -(gameSpeed * 0.75); // atualiza caso o jogo acelere
-    this.x += this.speedX;
-    if (this.x < -80) { this.visible = false; this.active = false; }
-  }
-
-  draw() {
-    if (!this.visible) return;
-    const cfg   = POWERUP_TYPES[this.type];
-    const pulse = 1 + 0.1 * Math.sin(frameCount * 0.18);
-    const s     = 40 * pulse;
-    ctx.save();
-    ctx.shadowColor = cfg.color;
-    ctx.shadowBlur  = 15;
-    ctx.fillStyle   = cfg.color;
-    ctx.globalAlpha = 0.85;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, s / 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-    ctx.font      = `${Math.round(s * 0.6)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText(cfg.label, this.x, this.y + s * 0.2);
-  }
-
-  getBounds() { return { x: this.x - 20, y: this.y - 20, w: 40, h: 40 }; }
-}
-
-// ─── CORUJA ───────────────────────────────────────────────
 class Owl {
-  constructor() { this.visible = false; this.x = canvas.width - 200; this.y = canvas.height - 200; this.timer = 0; this.msg = ''; }
-  show(msg = 'Você ficou invencível por 30s!') {
-    this.visible = true; this.timer = 300; this.msg = msg;
+  constructor() {
+    this.visible = false;
+    this.x = canvas.width  - 200;
+    this.y = canvas.height - 200;
+    this.timer = 0;
+    this.bubbleTimer = 0;
+  }
+
+  show() {
+    this.visible = true;
+    this.timer = this.bubbleTimer = 300;
+  }
+
+  update() {
+    if (!this.visible) return;
+    if (--this.timer <= 0) this.visible = false;
+    if (this.bubbleTimer > 0) this.bubbleTimer--;
   }
   update() { if (!this.visible) return; if (--this.timer <= 0) this.visible = false; }
   draw() {
     if (!this.visible) return;
+
     const img = (frameCount % 60 < 30) ? images.owl1 : images.owl2;
-    if (img) { ctx.drawImage(img, this.x, this.y, 80, 80); }
-    else {
-      ctx.fillStyle = '#8B4513'; ctx.beginPath();
-      ctx.arc(this.x + 40, this.y + 40, 30, 0, Math.PI * 2); ctx.fill();
+    if (img) {
+      ctx.drawImage(img, this.x, this.y, 80, 80);
+    } else {
+      ctx.fillStyle = '#8B4513';
+      ctx.beginPath();
+      ctx.arc(this.x + 40, this.y + 40, 30, 0, Math.PI * 2);
+      ctx.fill();
     }
-    const bx = this.x - 180, by = this.y - 70;
-    ctx.fillStyle   = 'white'; ctx.strokeStyle = 'black'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.roundRect(bx, by, 240, 55, 10); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = 'black'; ctx.font = '13px Arial'; ctx.textAlign = 'left';
-    ctx.fillText(this.msg, bx + 10, by + 32);
-  }
-}
 
-// ─── COMBO / FLOATING TEXTS ───────────────────────────────
-class FloatingText {
-  constructor(x, y, text, color) {
-    this.x = x; this.y = y; this.text = text; this.color = color;
-    this.life = 60; this.vy = -1.2; this.alive = true;
+    if (this.bubbleTimer > 0) {
+      const bx = this.x - 160, by = this.y - 80;
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(bx, by, 220, 55, 10); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'black';
+      ctx.font = '13px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText('Você ficou invencível por 30s!', bx + 10, by + 32);
+    }
   }
-  update() {
-    this.y    += this.vy;
-    this.life--;
-    if (this.life <= 0) this.alive = false;
-  }
-  draw() {
-    ctx.globalAlpha = clamp(this.life / 60, 0, 1);
-    ctx.fillStyle   = this.color;
-    ctx.font        = 'bold 22px Arial';
-    ctx.textAlign   = 'center';
-    ctx.strokeStyle = 'black'; ctx.lineWidth = 2;
-    ctx.strokeText(this.text, this.x, this.y);
-    ctx.fillText(this.text, this.x, this.y);
-    ctx.globalAlpha = 1;
-  }
-}
-
-const floatingTexts = [];
-function spawnFloatingText(x, y, text, color = 'white') {
-  floatingTexts.push(new FloatingText(x, y, text, color));
 }
 
 // ─── ESTADO GLOBAL DO JOGO (gv) ───────────────────────────
@@ -709,23 +640,6 @@ function updateGameplay() {
 
   // Coração
   heart.update();
-  if (heart.visible && checkCollision(bird.getBounds(), heart.getBounds())) {
-    heart.visible = false;
-    spawnFloatingText(heart.x, heart.y, '❤️ INVENCÍVEL!', '#FF69B4');
-  }
-
-  // Power-up (move da direita para a esquerda acompanhando a velocidade do jogo)
-  powerup.update(speed);
-  if (powerup.visible && checkCollision(bird.getBounds(), powerup.getBounds())) {
-    applyPowerUp(powerup.type);
-    powerup.reset();
-    gv.powerupNextAt = frameCount + randomBetween(2500, 4000);
-  }
-  if (!powerup.active && frameCount >= gv.powerupNextAt) {
-    powerup.show(speed);
-  }
-
-  // Coruja
   owl.update();
 
   // Partículas & textos flutuantes
@@ -898,6 +812,14 @@ function drawPlayScene() {
   ctx.fillStyle = '#FB3C57';
   ctx.font      = '26px Arial';
   ctx.fillText('by Johnson Gomes', canvas.width / 2, canvas.height / 2 + 90);
+
+  // High score
+  const hs = HighScore.get();
+  if (hs > 0) {
+    ctx.fillStyle = '#FFD700';
+    ctx.font      = 'bold 22px Arial';
+    ctx.fillText(`🏆 Recorde: ${hs} km`, canvas.width / 2, canvas.height / 2 + 125);
+  }
 
   // High score
   const hs = HighScore.get();

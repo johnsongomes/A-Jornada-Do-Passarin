@@ -421,56 +421,47 @@ const SupabaseService = {
       || LocalData.load().name
       || 'Anônimo';
 
-    console.info(`[Supabase] saveScore chamado — player: ${player}, km: ${km}, user_id: ${currentUser?.id ?? 'anônimo'}`);
-
     try {
       if (currentUser?.id) {
-        // ── Usuário logado: busca sem .single() para não estourar erro ──
-        const { data: rows, error: selError } = await supabase
+        // ── Usuário logado: upsert pelo user_id ──────────────
+        // Busca o registro atual para comparar km
+        const { data: existing } = await supabase
           .from('scores')
           .select('id, km')
           .eq('user_id', currentUser.id)
-          .limit(1);
-
-        if (selError) {
-          console.error('[Supabase] Erro na busca:', selError.message);
-          return { ok: false };
-        }
-
-        const existing = rows && rows.length > 0 ? rows[0] : null;
-        console.info('[Supabase] Registro existente:', existing);
+          .single();
 
         if (existing) {
+          // Só sobrescreve se o km atual for MELHOR que o salvo
           if (km > existing.km) {
-            // Novo recorde — atualiza
-            const { error: updError } = await supabase
+            const { error } = await supabase
               .from('scores')
               .update({ player, km, score, skin, created_at: new Date().toISOString() })
               .eq('user_id', currentUser.id);
-            if (updError) { console.error('[Supabase] Erro ao atualizar:', updError.message); return { ok: false }; }
-            console.info(`[Supabase] ✅ Recorde atualizado: ${player} — ${km} km`);
+            if (error) { console.error('[Supabase] Erro ao atualizar:', error.message); return { ok: false }; }
+            console.info(`[Supabase] Recorde atualizado: ${player} — ${km} km`);
           } else {
-            console.info(`[Supabase] Score ${km} km não supera recorde (${existing.km} km) — sem alteração.`);
+            console.info(`[Supabase] Score ${km} km não supera recorde (${existing.km} km) — nada alterado.`);
           }
         } else {
-          // Primeira partida — insere
-          const { error: insError } = await supabase
+          // Primeira vez — insere
+          const { error } = await supabase
             .from('scores')
             .insert({ user_id: currentUser.id, player, km, score, skin });
-          if (insError) { console.error('[Supabase] Erro ao inserir:', insError.message); return { ok: false }; }
-          console.info(`[Supabase] ✅ Primeiro score salvo: ${player} — ${km} km`);
+          if (error) { console.error('[Supabase] Erro ao inserir:', error.message); return { ok: false }; }
+          console.info(`[Supabase] Primeiro score salvo: ${player} — ${km} km`);
         }
       } else {
-        // ── Anônimo ──
-        const { error: anonError } = await supabase
+        // ── Anônimo: insere normalmente (sem user_id) ────────
+        const { error } = await supabase
           .from('scores')
           .insert({ player, km, score, skin, user_id: null });
-        if (anonError) { console.error('[Supabase] Erro anônimo:', anonError.message); return { ok: false }; }
-        console.info(`[Supabase] ✅ Score anônimo salvo: ${player} — ${km} km`);
+        if (error) { console.error('[Supabase] Erro ao salvar anônimo:', error.message); return { ok: false }; }
+        console.info(`[Supabase] Score anônimo salvo: ${player} — ${km} km`);
       }
       return { ok: true };
     } catch (err) {
-      console.error('[Supabase] Erro inesperado em saveScore:', err.message, err);
+      console.error('[Supabase] Erro inesperado:', err.message);
       return { ok: false };
     }
   },

@@ -31,7 +31,7 @@
 'use strict';
 
 // ─── SUPABASE CLIENT (importado do seu supabaseClient.js) ─
-import { supabase } from './supabaseClient.js';
+import { supabase } from '/js/supabaseClient.js';
 
 // ─── CANVAS ───────────────────────────────────────────────
 const canvas = document.getElementById('gameCanvas');

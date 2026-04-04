@@ -1,37 +1,17 @@
 /* =========================================================
-   PASSARINHO JORNADA v5.2
-   NOVIDADES:
-   - Sistema de moedas: obstáculos desvios geram moedas
-   - Chão animado com paralaxe (2 camadas)
-   - Fundo animado com paralaxe (nuvens/pirâmides)
-   - Obstáculos piscam vermelho antes de colidir (aviso)
-   - Pássaro pisca e tem efeito de invencibilidade colorido
-   - Tela de pausa (tecla P ou botão na HUD)
-   - Efeito de câmera shake na colisão
-   - Contador de moedas na HUD
-   - Moedas ganhas ao desviar adicionadas ao storeState
-   BUGS CORRIGIDOS:
-   - handleHit chamado múltiplas vezes no mesmo frame (debounce)
-   - Escudo sendo aplicado depois de já estar em colisão
-   - Input.consume() faltando em alguns caminhos da loja
-   - Spawn do coração durante invencibilidade ativa
-   - Obstacle scored não resetando ao reciclar avião
-   - frameCount não resetando ao reiniciar (acumulava lixo)
-   - Combo não zerando ao perder uma vida
-   INTEGRAÇÃO SUPABASE REAL:
-   - Importa supabase do supabaseClient.js do projeto
-   - Lê usuário logado via auth.getUser() (auth.js)
-   - Username vem de user.user_metadata.username
-   - Salva score na tabela "scores" via supabase.from()
-   - Busca top 10 ranking global via supabase.from()
-   - Tela de ranking (LEADERBOARD) acessível no menu
-   - Se não há sessão ativa, usa nome local como fallback
+   PASSARINHO JORNADA v5.0
+   - Vidas: começa com 1, máx 4, coração dá +1 vida ao ser pego
+   - Coração vem da direita → esquerda (igual power-ups)
+   - Invencibilidade só ativa ao pegar o coração
+   - Nome do jogador salvo no localStorage junto com km
+   - High Score exibe nome + km
+   - "by Johnson Gomes" canto inferior direito
+   - Score/Record mostra apenas km
+   - Loja de Power-ups, Skins e Items preparada (PlayerStore)
+   - Integração Supabase preparada (SupabaseService)
    ========================================================= */
 
 'use strict';
-
-// ─── SUPABASE CLIENT (importado do seu supabaseClient.js) ─
-import { supabase } from './supabaseClient.js';
 
 // ─── CANVAS ───────────────────────────────────────────────
 const canvas = document.getElementById('gameCanvas');
@@ -165,18 +145,11 @@ canvas.addEventListener('touchend', (e) => {
 }, { passive: false });
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' || e.code === 'ArrowUp') Input.set(-1, -1);
-  if (e.key === 'p' || e.key === 'P') togglePause();
 });
 
 // ─── ESTADOS ──────────────────────────────────────────────
-const SCENE = { PLAY: 'PLAY', GAME: 'GAME', GAMEOVER: 'GAMEOVER', STORE: 'STORE', NAME: 'NAME', LEADERBOARD: 'LEADERBOARD' };
-let currentScene = SCENE.NAME;
-let gamePaused = false;
-
-function togglePause() {
-  if (currentScene !== SCENE.GAME) return;
-  gamePaused = !gamePaused;
-}
+const SCENE = { PLAY: 'PLAY', GAME: 'GAME', GAMEOVER: 'GAMEOVER', STORE: 'STORE', NAME: 'NAME' };
+let currentScene = SCENE.NAME; // Começa pedindo nome
 
 // =========================================================
 // ─── PLAYER STORE (Loja de Power-ups, Skins, Items) ───────
@@ -367,110 +340,59 @@ const PlayerStore = {
 };
 
 // =========================================================
-// ─── SUPABASE SERVICE (integração real) ───────────────────
+// ─── SUPABASE SERVICE (integração pronta) ─────────────────
 // =========================================================
 /*
-  Tabela necessária no Supabase (rode no SQL Editor):
-
-  create table if not exists scores (
-    id         uuid default gen_random_uuid() primary key,
-    user_id    uuid references auth.users(id) on delete set null,
-    player     text not null,
-    km         integer not null default 0,
-    score      integer not null default 0,
-    skin       text default 'skin_default',
-    created_at timestamptz default now()
-  );
-
-  -- Habilita leitura pública do ranking:
-  alter table scores enable row level security;
-  create policy "leitura publica" on scores for select using (true);
-  create policy "insert proprio" on scores for insert
-    with check (auth.uid() = user_id or user_id is null);
+  Para ativar:
+  1. Crie um projeto em https://supabase.com
+  2. Crie uma tabela "scores" com colunas:
+       id         uuid default gen_random_uuid() primary key
+       player     text not null
+       km         integer not null
+       score      integer not null
+       skin       text
+       created_at timestamptz default now()
+  3. Preencha SUPABASE_URL e SUPABASE_ANON_KEY abaixo
+  4. Chame SupabaseService.saveScore(...) no triggerGameOver
 */
-
-// Usuário logado atualmente (carregado no boot)
-let currentUser = null;
-
 const SupabaseService = {
+  URL:      '',  // ex: 'https://xyzxyz.supabase.co'
+  ANON_KEY: '',  // sua anon key pública
 
-  // ── Carrega o usuário da sessão ativa (auth.js → getUser) ──
-  async loadUser() {
-    try {
-      const { data } = await supabase.auth.getUser();
-      currentUser = data?.user ?? null;
-      if (currentUser) {
-        // Sincroniza nome do usuário Supabase com o LocalData
-        const username = currentUser.user_metadata?.username || currentUser.email || '';
-        const d = LocalData.load();
-        if (username && !d.name) { d.name = username; LocalData.save(d); }
-        console.info(`[Supabase] Usuário: ${username}`);
-      } else {
-        console.info('[Supabase] Nenhuma sessão ativa — modo offline.');
-      }
-    } catch (err) {
-      console.warn('[Supabase] Erro ao carregar usuário:', err.message);
-      currentUser = null;
-    }
-  },
+  get enabled() { return !!(this.URL && this.ANON_KEY); },
 
-  // ── Salva score usando supabase.from() ──────────────────
-  async saveScore({ km, score, skin = 'skin_default' }) {
-    // Nome: prefere username do Supabase, fallback para LocalData
-    const player = currentUser?.user_metadata?.username
-      || currentUser?.email
-      || LocalData.load().name
-      || 'Anônimo';
-
-    const payload = {
-      player,
-      km,
-      score,
-      skin,
-      user_id: currentUser?.id ?? null,
-    };
-
-    try {
-      const { error } = await supabase.from('scores').insert(payload);
-      if (error) {
-        console.error('[Supabase] Erro ao salvar score:', error.message);
-        return { ok: false, error: error.message };
-      }
-      console.info(`[Supabase] Score salvo: ${player} — ${km} km`);
-      return { ok: true };
-    } catch (err) {
-      console.error('[Supabase] Erro inesperado:', err.message);
+  async saveScore({ player, km, score, skin = 'skin_default' }) {
+    if (!this.enabled) {
+      console.info('[Supabase] não configurado — score não enviado.');
       return { ok: false };
     }
+    try {
+      const res = await fetch(`${this.URL}/rest/v1/scores`, {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'apikey':         this.ANON_KEY,
+          'Authorization': `Bearer ${this.ANON_KEY}`,
+          'Prefer':        'return=minimal',
+        },
+        body: JSON.stringify({ player, km, score, skin }),
+      });
+      return { ok: res.ok, status: res.status };
+    } catch (err) {
+      console.error('[Supabase] erro ao salvar:', err);
+      return { ok: false, error: err.message };
+    }
   },
 
-  // ── Busca top 10 ranking global ─────────────────────────
   async getTopScores(limit = 10) {
+    if (!this.enabled) return [];
     try {
-      const { data, error } = await supabase
-        .from('scores')
-        .select('player, km, score, skin, created_at')
-        .order('km', { ascending: false })
-        .limit(limit);
-
-      if (error) { console.warn('[Supabase] Erro no ranking:', error.message); return []; }
-      return data ?? [];
+      const res = await fetch(
+        `${this.URL}/rest/v1/scores?select=player,km,score&order=km.desc&limit=${limit}`,
+        { headers: { 'apikey': this.ANON_KEY, 'Authorization': `Bearer ${this.ANON_KEY}` } }
+      );
+      return res.ok ? await res.json() : [];
     } catch (_) { return []; }
-  },
-
-  // ── Melhor score do usuário logado ──────────────────────
-  async getMyBest() {
-    if (!currentUser) return null;
-    try {
-      const { data } = await supabase
-        .from('scores')
-        .select('km, score')
-        .eq('user_id', currentUser.id)
-        .order('km', { ascending: false })
-        .limit(1)
-        .single();
-      return data ?? null;
-    } catch (_) { return null; }
   },
 };
 
@@ -502,67 +424,6 @@ const LocalData = {
 const HighScore = {
   get()    { return LocalData.load().bestKm || 0; },
   getName(){ return LocalData.load().name   || ''; },
-};
-
-// ─── PARALAXE ────────────────────────────────────────────────
-const Parallax = {
-  // Duas camadas de chão que rolam em velocidades diferentes
-  ground: [
-    { x: 0, speed: 1.0, color: '#8B6914', h: 18 }, // camada traseira (mais lenta)
-    { x: 0, speed: 1.8, color: '#6B4F0F', h: 10 }, // camada frontal (mais rápida)
-  ],
-  // Duas camadas de fundo (nuvens simuladas quando não há imagem)
-  bg: [
-    { x: 0, speed: 0.3 },
-    { x: canvas.width / 2, speed: 0.5 },
-  ],
-
-  update(gameSpeed) {
-    this.ground.forEach(g => {
-      g.x -= g.speed * gameSpeed;
-      if (g.x <= -canvas.width) g.x = 0;
-    });
-    this.bg.forEach(b => {
-      b.x -= b.speed * gameSpeed;
-      if (b.x <= -canvas.width) b.x = 0;
-    });
-  },
-
-  drawGround() {
-    const groundY = canvas.height - 30;
-    this.ground.forEach(g => {
-      ctx.fillStyle = g.color;
-      // Duas cópias para looping contínuo
-      ctx.fillRect(g.x,                  groundY, canvas.width, g.h);
-      ctx.fillRect(g.x + canvas.width,   groundY, canvas.width, g.h);
-    });
-  },
-
-  // Nuvens de fallback quando não há imagem de bg
-  drawBgClouds() {
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle   = 'white';
-    this.bg.forEach(b => {
-      [0, canvas.width].forEach(offset => {
-        ctx.beginPath();
-        ctx.arc(b.x + offset + 80,  80, 40, 0, Math.PI * 2);
-        ctx.arc(b.x + offset + 130, 70, 55, 0, Math.PI * 2);
-        ctx.arc(b.x + offset + 180, 80, 40, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(b.x + offset + 400, 130, 30, 0, Math.PI * 2);
-        ctx.arc(b.x + offset + 440, 120, 45, 0, Math.PI * 2);
-        ctx.arc(b.x + offset + 480, 130, 30, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    });
-    ctx.globalAlpha = 1;
-  },
-
-  reset() {
-    this.ground.forEach(g => { g.x = 0; });
-    this.bg.forEach((b, i) => { b.x = i * (canvas.width / 2); });
-  },
 };
 
 // ─── PARTÍCULAS ───────────────────────────────────────────
@@ -738,8 +599,7 @@ class Obstacle {
     this.x += this.speedX;
     if (fromLeft) {
       if (this.x > canvas.width + 20) {
-        this.x = -this.width - 20; this.y = 80 + Math.random() * 200;
-        this.scored = false; // BUG FIX: garante reset do combo ao reciclar avião
+        this.x = -this.width - 20; this.y = 80 + Math.random() * 200; this.scored = false;
       }
     } else {
       if (this.x < -this.width - 20) {
@@ -750,19 +610,8 @@ class Obstacle {
   }
   draw() {
     const img = images[this.imgKey];
-    // Aviso visual: pisca vermelho quando está próximo do pássaro
-    const nearBird = bird && Math.abs(this.x - bird.x) < 120;
-    if (nearBird && !gv.invencivel && !gv.shield && frameCount % 8 < 4) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'source-atop';
-    }
     if (img) { ctx.drawImage(img, this.x, this.y, this.width, this.height); }
     else { ctx.fillStyle = this.type === 'plane' ? '#708090' : '#228B22'; ctx.fillRect(this.x, this.y, this.width, this.height); }
-    if (nearBird && !gv.invencivel && !gv.shield && frameCount % 8 < 4) {
-      ctx.fillStyle = 'rgba(255,0,0,0.35)';
-      ctx.fillRect(this.x, this.y, this.width, this.height);
-      ctx.restore();
-    }
   }
   getBounds() { return { x: this.x, y: this.y, w: this.width, h: this.height }; }
 }
@@ -894,14 +743,11 @@ function resetGameVars() {
   obstacles = []; floatingTexts.length = 0; ParticleSystem.clear();
   bird = new Bird(); heart = new Heart(); powerup = new PowerUp(); owl = new Owl();
   Difficulty.level = 1;
-  gamePaused = false; // garante que começa sem pausa
-  Parallax.reset();
   for (let i = 0; i < 3; i++) spawnObstacle(canvas.width + i * 350);
   obstacles.push(new Obstacle('plane'));
 }
 
 function startGame() {
-  frameCount = 0; // reset ANTES da transição para não acumular entre partidas
   Transition.start(() => { currentScene = SCENE.GAME; frameCount = 0; resetGameVars(); });
 }
 
@@ -914,12 +760,13 @@ function triggerGameOver() {
   // Salva localmente
   const playerData = LocalData.updateAfterGame(gv.distanciap);
 
-  // Envia para Supabase — usa usuário da sessão ativa
+  // Envia para Supabase (não bloqueia o jogo)
   SupabaseService.saveScore({
-    km:    gv.distanciap,
-    score: gv.totalScore,
-    skin:  storeState.activeSkin,
-  }); // async, não bloqueia
+    player: playerData.name,
+    km:     gv.distanciap,
+    score:  gv.totalScore,
+    skin:   storeState.activeSkin,
+  }).then(r => { if (r.ok) console.info('[Supabase] score salvo!'); });
 
   setTimeout(() => {
     Transition.start(() => { currentScene = SCENE.GAMEOVER; });
@@ -936,7 +783,7 @@ function spawnObstacle(x) {
 
 // ─── LÓGICA DE JOGO ───────────────────────────────────────
 function updateGameplay() {
-  if (gv.colisao || gamePaused) return;
+  if (gv.colisao) return;
 
   const speed = gv.slowmo ? Difficulty.getSpeed(gv.distanciap) * 0.5 : Difficulty.getSpeed(gv.distanciap);
 
@@ -958,23 +805,15 @@ function updateGameplay() {
       playSound('sndBing');
       obs.x = canvas.width + 100;
     }
-    // Combo + moedas ao desviar
+    // Combo
     if (!obs.scored && obs.type !== 'plane' && obs.x + obs.width < bird.x - 30) {
       obs.scored = true; gv.combo++; gv.comboTimer = 4 * 60;
       const pts = gv.doubleScore ? gv.combo * 2 : gv.combo;
       gv.totalScore += pts;
-
-      // Ganha 1 moeda a cada desvio, 2 se doubleScore ativo
-      const coinsGained = gv.doubleScore ? 2 : 1;
-      storeState.coins += coinsGained;
-      PlayerStore.save(storeState);
-
       if (gv.combo >= 3) {
         spawnFloat(bird.x, bird.y - 50, `x${gv.combo} COMBO! +${pts}`, '#FFD700');
         ParticleSystem.spawn(bird.x, bird.y, '#FFD700', 6, 3, 20, 3);
       }
-      // Moeda flutuante discreta
-      spawnFloat(obs.x + obs.width / 2, obs.y - 10, `+${coinsGained}🪙`, '#F1C40F');
     }
   });
 
@@ -983,8 +822,7 @@ function updateGameplay() {
   if (heart.visible && checkCollision(bird.getBounds(), heart.getBounds())) {
     collectHeart();
   }
-  // BUG FIX: não spawna coração durante invencibilidade ativa
-  if (!heart.active && frameCount >= gv.heartNextAt && !gv.invencivel) {
+  if (!heart.active && frameCount >= gv.heartNextAt) {
     heart.show(speed);
   }
 
@@ -1000,8 +838,6 @@ function updateGameplay() {
   }
 
   owl.update();
-  CameraShake.update();
-  Parallax.update(speed);
   ParticleSystem.update();
   floatingTexts.forEach(t => t.update());
   floatingTexts.splice(0, floatingTexts.length, ...floatingTexts.filter(t => t.alive));
@@ -1023,23 +859,18 @@ function updateGameplay() {
   if (gv.slowmo      && --gv.slowmoTimer      <= 0) gv.slowmo      = false;
   if (gv.doubleScore && --gv.doubleScoreTimer <= 0) gv.doubleScore = false;
   if (gv.comboTimer  > 0 && --gv.comboTimer   <= 0) gv.combo       = 0;
-  if (gv._hitCooldown > 0) gv._hitCooldown--;
 }
 
 function handleHit() {
   if (gv.invencivel || gv.shield) return;
-  // Debounce: evita múltiplos hits no mesmo frame
-  if (gv._hitCooldown && gv._hitCooldown > 0) return;
-  gv._hitCooldown = 30; // frames de cooldown entre hits
   gv.lives--;
-  gv.combo = 0; gv.comboTimer = 0; // BUG FIX: zera combo ao levar dano
   if (gv.lives <= 0) {
     triggerGameOver();
   } else {
-    gv.invencivel = true; gv.invencivelTimer = 90; // 1.5s de graça
-    CameraShake.trigger(8, 20); // shake na colisão
+    // Perde uma vida mas continua — invencibilidade breve (0.5s) para não morrer imediatamente
+    gv.invencivel = true; gv.invencivelTimer = 60;
     ParticleSystem.spawn(bird.x, bird.y, '#FF4500', 10, 4, 25, 4);
-    spawnFloat(bird.x, bird.y - 50, '❤️ -1 VIDA', '#FF4444');
+    spawnFloat(bird.x, bird.y - 50, `❤️ -1 VIDA`, '#FF4444');
     playSound('sndBeep');
   }
 }
@@ -1148,20 +979,6 @@ function drawHUD() {
     ctx.fillText(recStr, canvas.width - 50, canvas.height - 15);
   }
 
-  // Botão pausa — topo centro
-  const pbx = canvas.width / 2 - 22, pby = 8, pbw = 44, pbh = 36;
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath(); ctx.roundRect(pbx, pby, pbw, pbh, 6); ctx.fill();
-  ctx.textAlign = 'center'; ctx.font = '22px Arial'; ctx.fillStyle = 'white';
-  ctx.fillText('⏸', canvas.width / 2, pby + 27);
-  if (Input.pressed && pointInRect(Input.x, Input.y, pbx, pby, pbw, pbh)) {
-    togglePause(); Input.consume();
-  }
-
-  // Moedas na HUD (abaixo do score)
-  ctx.textAlign = 'left'; ctx.font = 'bold 16px Arial'; ctx.fillStyle = '#F1C40F';
-  ctx.fillText(`🪙 ${storeState.coins}`, 215, 72);
-
   // "by Johnson Gomes" — canto inferior direito
   ctx.textAlign = 'right'; ctx.font = 'italic 13px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.45)';
   ctx.fillText('by Johnson Gomes', canvas.width - 10, canvas.height - 4);
@@ -1185,25 +1002,6 @@ function drawBackground(scene) {
 let nameInput = '';
 let nameCursor = true;
 let nameCursorTimer = 0;
-
-// ─── LEADERBOARD STATE ────────────────────────────────────
-const Leaderboard = {
-  entries: [],       // cache dos scores
-  loading: false,
-  loaded:  false,
-  myBest:  null,
-
-  async fetch() {
-    this.loading = true;
-    this.loaded  = false;
-    [this.entries, this.myBest] = await Promise.all([
-      SupabaseService.getTopScores(10),
-      SupabaseService.getMyBest(),
-    ]);
-    this.loading = false;
-    this.loaded  = true;
-  },
-};
 
 function drawNameScene() {
   // Fundo gradiente
@@ -1273,13 +1071,12 @@ window.addEventListener('keydown', (e) => {
 
 // ─── CENA: MENU PLAY ──────────────────────────────────────
 function getPlayButtons() {
-  const bw = 190, bh = 60, cx = canvas.width / 2;
+  const bw = 200, bh = 60, cx = canvas.width / 2;
   const playY = canvas.height / 2 + 150;
   return {
-    play:  { x: cx - bw - 5,  y: playY,      w: bw, h: bh },
-    store: { x: cx + 5,       y: playY,      w: bw, h: bh },
-    rank:  { x: cx - bw/2,    y: playY + 75, w: bw, h: 50 },
-    sair:  { x: cx - bw/2,    y: playY + 135,w: bw, h: 45 },
+    play:  { x: cx - bw/2,       y: playY,      w: bw, h: bh },
+    store: { x: cx - bw/2 + 210, y: playY,      w: bw, h: bh },
+    sair:  { x: cx - bw/2,       y: playY + 80, w: bw, h: 50 },
   };
 }
 
@@ -1307,41 +1104,25 @@ function drawPlayScene() {
     ctx.fillText(recStr, canvas.width / 2, canvas.height / 2 + 115);
   }
 
-  // Nome do usuário Supabase (se logado)
-  const supaName = currentUser?.user_metadata?.username || currentUser?.email || null;
-  if (supaName) {
-    ctx.fillStyle = '#00FF88'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center';
-    ctx.fillText(`🟢 ${supaName}`, canvas.width / 2, canvas.height / 2 + 148);
-  }
-
-  const { play, store, rank, sair } = getPlayButtons();
-
+  const { play, store, sair } = getPlayButtons();
   // Botão Play
   if (images.btnPlay) {
     ctx.drawImage(images.btnPlay, play.x, play.y, play.w, play.h);
   } else {
     ctx.fillStyle = '#4CAF50'; ctx.beginPath(); ctx.roundRect(play.x, play.y, play.w, play.h, 15); ctx.fill();
-    ctx.fillStyle = 'white'; ctx.font = '26px Arial'; ctx.textAlign = 'center';
-    ctx.fillText('▶ Play', play.x + play.w/2, play.y + 38);
+    ctx.fillStyle = 'white'; ctx.font = '28px Arial'; ctx.fillText('▶ Play', play.x + play.w/2, play.y + 38);
   }
-
   // Botão Loja
   ctx.fillStyle = '#FF9800'; ctx.beginPath(); ctx.roundRect(store.x, store.y, store.w, store.h, 15); ctx.fill();
-  ctx.fillStyle = 'white'; ctx.font = '22px Arial'; ctx.textAlign = 'center';
+  ctx.fillStyle = 'white'; ctx.font = '24px Arial'; ctx.textAlign = 'center';
   ctx.fillText('🛒 Loja', store.x + store.w/2, store.y + 38);
-
-  // Botão Ranking
-  ctx.fillStyle = '#9B59B6'; ctx.beginPath(); ctx.roundRect(rank.x, rank.y, rank.w, rank.h, 10); ctx.fill();
-  ctx.fillStyle = 'white'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('🏆 Ranking', rank.x + rank.w/2, rank.y + 32);
 
   // Botão Sair
   if (images.btnSair) {
     ctx.drawImage(images.btnSair, sair.x, sair.y, sair.w, sair.h);
   } else {
     ctx.fillStyle = '#f44336'; ctx.beginPath(); ctx.roundRect(sair.x, sair.y, sair.w, sair.h, 10); ctx.fill();
-    ctx.fillStyle = 'white'; ctx.font = '20px Arial'; ctx.textAlign = 'center';
-    ctx.fillText('✕ Sair', sair.x + sair.w/2, sair.y + 28);
+    ctx.fillStyle = 'white'; ctx.font = '24px Arial'; ctx.fillText('✕ Sair', sair.x + sair.w/2, sair.y + 32);
   }
 
   // "by Johnson Gomes" — canto inferior direito
@@ -1349,44 +1130,20 @@ function drawPlayScene() {
   ctx.fillText('by Johnson Gomes', canvas.width - 10, canvas.height - 6);
 
   if (Input.pressed) {
-    if (pointInRect(Input.x, Input.y, play.x,  play.y,  play.w,  play.h) || Input.x < 0) startGame();
+    if (pointInRect(Input.x, Input.y, play.x,  play.y,  play.w,  play.h)  || Input.x < 0) startGame();
     if (pointInRect(Input.x, Input.y, store.x, store.y, store.w, store.h))
       Transition.start(() => { currentScene = SCENE.STORE; });
-    if (pointInRect(Input.x, Input.y, rank.x,  rank.y,  rank.w,  rank.h)) {
-      Leaderboard.fetch(); // busca ranking ao entrar
-      Transition.start(() => { currentScene = SCENE.LEADERBOARD; });
-    }
     Input.consume();
   }
 }
 
-// ─── PAUSA OVERLAY ────────────────────────────────────────
-function drawPauseOverlay() {
-  ctx.fillStyle = 'rgba(0,0,0,0.55)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'white'; ctx.font = 'bold 52px Arial';
-  ctx.fillText('⏸ PAUSADO', canvas.width / 2, canvas.height / 2 - 20);
-  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '22px Arial';
-  ctx.fillText('Pressione P ou toque para continuar', canvas.width / 2, canvas.height / 2 + 30);
-  // Toque para despausar
-  if (Input.pressed) { togglePause(); Input.consume(); }
-}
-
 // ─── CENA: JOGO ───────────────────────────────────────────
 function drawGameScene() {
-  CameraShake.apply(); // shake da câmera (ctx.save interno)
   drawBackground(SCENE.GAME);
-  Parallax.drawBgClouds();      // nuvens de paralaxe (só quando sem imagem)
   obstacles.forEach(o => o.draw());
-  heart.draw(); powerup.draw();
-  bird.draw();
-  Parallax.drawGround();        // chão com paralaxe por cima do bg
-  owl.draw();
+  bird.draw(); heart.draw(); powerup.draw(); owl.draw();
   ParticleSystem.draw(); floatingTexts.forEach(t => t.draw());
-  CameraShake.restore();
   drawHUD();
-  if (gamePaused) drawPauseOverlay();
 }
 
 // ─── CENA: GAME OVER ──────────────────────────────────────
@@ -1569,111 +1326,6 @@ function drawStoreScene() {
   if (Input.pressed) Input.consume();
 }
 
-// ─── CENA: LEADERBOARD ────────────────────────────────────
-function drawLeaderboardScene() {
-  // Fundo
-  const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  g.addColorStop(0, '#0f0c29'); g.addColorStop(1, '#302b63');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Título
-  ctx.textAlign = 'center'; ctx.fillStyle = '#FFD700'; ctx.font = 'bold 44px Arial';
-  ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 15;
-  ctx.fillText('🏆 Ranking Global', canvas.width / 2, 60);
-  ctx.shadowBlur = 0;
-
-  // Usuário logado
-  const supaName = currentUser?.user_metadata?.username || currentUser?.email || null;
-  ctx.fillStyle = supaName ? '#00FF88' : 'rgba(255,255,255,0.4)';
-  ctx.font = '16px Arial';
-  ctx.fillText(supaName ? `Logado como: ${supaName}` : 'Não logado — mostrando ranking geral', canvas.width / 2, 88);
-
-  if (Leaderboard.loading) {
-    ctx.fillStyle = 'white'; ctx.font = '24px Arial';
-    ctx.fillText('Carregando...', canvas.width / 2, canvas.height / 2);
-  } else if (!Leaderboard.loaded || Leaderboard.entries.length === 0) {
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '20px Arial';
-    ctx.fillText('Nenhum score encontrado ainda.', canvas.width / 2, canvas.height / 2);
-    ctx.font = '15px Arial';
-    ctx.fillText('Jogue e apareça aqui! 🐦', canvas.width / 2, canvas.height / 2 + 35);
-  } else {
-    // Cabeçalho da tabela
-    const cols = { pos: 80, name: 200, km: 500, score: 650 };
-    const rowH = 46, startY = 125;
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    ctx.fillRect(40, startY - 30, canvas.width - 80, 34);
-    ctx.fillStyle = '#FFD700'; ctx.font = 'bold 15px Arial'; ctx.textAlign = 'left';
-    ctx.fillText('#',       cols.pos,   startY - 8);
-    ctx.fillText('Jogador', cols.name,  startY - 8);
-    ctx.textAlign = 'right';
-    ctx.fillText('km',      cols.km,    startY - 8);
-    ctx.fillText('Score',   cols.score, startY - 8);
-
-    Leaderboard.entries.forEach((entry, i) => {
-      const y = startY + i * rowH + rowH;
-      const isMe = currentUser && entry.player === (currentUser.user_metadata?.username || currentUser.email);
-      const isTop3 = i < 3;
-
-      // Linha de fundo
-      ctx.fillStyle = isMe
-        ? 'rgba(0,255,136,0.12)'
-        : (i % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'transparent');
-      ctx.fillRect(40, y - 28, canvas.width - 80, rowH - 4);
-
-      // Medalhas top 3
-      const medal = ['🥇','🥈','🥉'][i] || `${i + 1}.`;
-      ctx.textAlign = 'left';
-      ctx.font = isTop3 ? 'bold 20px Arial' : '18px Arial';
-      ctx.fillStyle = isMe ? '#00FF88' : (isTop3 ? '#FFD700' : 'white');
-      ctx.fillText(medal,                cols.pos,  y);
-      ctx.font = isMe ? 'bold 17px Arial' : '16px Arial';
-      ctx.fillStyle = isMe ? '#00FF88' : 'white';
-      ctx.fillText(entry.player || '?',  cols.name, y);
-      ctx.textAlign = 'right';
-      ctx.fillText(`${entry.km} km`,     cols.km,   y);
-      ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '14px Arial';
-      ctx.fillText(entry.score ?? '--',  cols.score, y);
-    });
-
-    // Meu melhor score (se logado e não aparece no top 10)
-    if (Leaderboard.myBest) {
-      const inTop = Leaderboard.entries.some(e =>
-        currentUser && e.player === (currentUser.user_metadata?.username || currentUser.email));
-      if (!inTop) {
-        const by = startY + Leaderboard.entries.length * rowH + rowH + 10;
-        ctx.fillStyle = 'rgba(0,255,136,0.15)';
-        ctx.fillRect(40, by - 28, canvas.width - 80, 40);
-        ctx.textAlign = 'left'; ctx.fillStyle = '#00FF88'; ctx.font = 'bold 16px Arial';
-        ctx.fillText('▶ Você', cols.name, by);
-        ctx.textAlign = 'right';
-        ctx.fillText(`${Leaderboard.myBest.km} km`, cols.km, by);
-      }
-    }
-  }
-
-  // Botão atualizar
-  const rbx = canvas.width / 2 - 210, rby = canvas.height - 70, rbw = 180, rbh = 42;
-  ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.roundRect(rbx, rby, rbw, rbh, 10); ctx.fill();
-  ctx.fillStyle = 'white'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('🔄 Atualizar', rbx + rbw / 2, rby + 28);
-
-  // Botão voltar
-  const vbx = canvas.width / 2 + 30, vby = canvas.height - 70, vbw = 180, vbh = 42;
-  ctx.fillStyle = '#2196F3'; ctx.beginPath(); ctx.roundRect(vbx, vby, vbw, vbh, 10); ctx.fill();
-  ctx.fillStyle = 'white'; ctx.font = 'bold 18px Arial';
-  ctx.fillText('← Voltar', vbx + vbw / 2, vby + 28);
-
-  ctx.textAlign = 'right'; ctx.font = 'italic 13px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.fillText('by Johnson Gomes', canvas.width - 10, canvas.height - 6);
-
-  if (Input.pressed) {
-    if (pointInRect(Input.x, Input.y, rbx, rby, rbw, rbh)) Leaderboard.fetch();
-    if (pointInRect(Input.x, Input.y, vbx, vby, vbw, vbh))
-      Transition.start(() => { currentScene = SCENE.PLAY; });
-    Input.consume();
-  }
-}
-
 // ─── LOOP ─────────────────────────────────────────────────
 function loop() {
   frameCount++;
@@ -1683,35 +1335,19 @@ function loop() {
   else if (currentScene === SCENE.PLAY)     drawPlayScene();
   else if (currentScene === SCENE.GAME)     { updateGameplay(); drawGameScene(); }
   else if (currentScene === SCENE.GAMEOVER) drawGameOverScene();
-  else if (currentScene === SCENE.STORE)       drawStoreScene();
-  else if (currentScene === SCENE.LEADERBOARD)  drawLeaderboardScene();
+  else if (currentScene === SCENE.STORE)    drawStoreScene();
 
   Transition.update(); Transition.draw();
   requestAnimationFrame(loop);
 }
 
 // ─── BOOT ─────────────────────────────────────────────────
-(async () => {
-  // 1. Carrega usuário Supabase (sessão ativa do auth.js)
-  await SupabaseService.loadUser();
-
-  // 2. Carrega assets do jogo em paralelo
-  await loadAssets();
+loadAssets().then(() => {
   loadSounds();
-
-  // 3. Estado da loja
   storeState = PlayerStore.load();
-
-  // 4. Sincroniza nome: prefere username Supabase, fallback LocalData
-  const supaName = currentUser?.user_metadata?.username || currentUser?.email || '';
-  const saved    = LocalData.load();
-  const name     = supaName || saved.name || '';
-  if (name) {
-    nameInput = name;
-    if (!saved.name) { saved.name = name; LocalData.save(saved); }
-    currentScene = SCENE.PLAY; // pula tela de nome se já tem
-  }
-
+  // Se já tem nome salvo, pula tela de nome
+  const saved = LocalData.load();
+  if (saved.name) { nameInput = saved.name; currentScene = SCENE.PLAY; }
   bird = new Bird();
   requestAnimationFrame(loop);
-})();
+});

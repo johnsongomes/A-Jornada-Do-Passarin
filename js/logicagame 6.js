@@ -416,49 +416,27 @@ const SupabaseService = {
 
   // ── Salva score usando supabase.from() ──────────────────
   async saveScore({ km, score, skin = 'skin_default' }) {
+    // Nome: prefere username do Supabase, fallback para LocalData
     const player = currentUser?.user_metadata?.username
       || currentUser?.email
       || LocalData.load().name
       || 'Anônimo';
 
-    try {
-      if (currentUser?.id) {
-        // ── Usuário logado: upsert pelo user_id ──────────────
-        // Busca o registro atual para comparar km
-        const { data: existing } = await supabase
-          .from('scores')
-          .select('id, km')
-          .eq('user_id', currentUser.id)
-          .single();
+    const payload = {
+      player,
+      km,
+      score,
+      skin,
+      user_id: currentUser?.id ?? null,
+    };
 
-        if (existing) {
-          // Só sobrescreve se o km atual for MELHOR que o salvo
-          if (km > existing.km) {
-            const { error } = await supabase
-              .from('scores')
-              .update({ player, km, score, skin, created_at: new Date().toISOString() })
-              .eq('user_id', currentUser.id);
-            if (error) { console.error('[Supabase] Erro ao atualizar:', error.message); return { ok: false }; }
-            console.info(`[Supabase] Recorde atualizado: ${player} — ${km} km`);
-          } else {
-            console.info(`[Supabase] Score ${km} km não supera recorde (${existing.km} km) — nada alterado.`);
-          }
-        } else {
-          // Primeira vez — insere
-          const { error } = await supabase
-            .from('scores')
-            .insert({ user_id: currentUser.id, player, km, score, skin });
-          if (error) { console.error('[Supabase] Erro ao inserir:', error.message); return { ok: false }; }
-          console.info(`[Supabase] Primeiro score salvo: ${player} — ${km} km`);
-        }
-      } else {
-        // ── Anônimo: insere normalmente (sem user_id) ────────
-        const { error } = await supabase
-          .from('scores')
-          .insert({ player, km, score, skin, user_id: null });
-        if (error) { console.error('[Supabase] Erro ao salvar anônimo:', error.message); return { ok: false }; }
-        console.info(`[Supabase] Score anônimo salvo: ${player} — ${km} km`);
+    try {
+      const { error } = await supabase.from('scores').insert(payload);
+      if (error) {
+        console.error('[Supabase] Erro ao salvar score:', error.message);
+        return { ok: false, error: error.message };
       }
+      console.info(`[Supabase] Score salvo: ${player} — ${km} km`);
       return { ok: true };
     } catch (err) {
       console.error('[Supabase] Erro inesperado:', err.message);
@@ -767,14 +745,14 @@ const OBSTACLE_CONFIG = {
   tree:  { imgKey: 'tree1', w: 80,  h: 200, groundOffset: 200,  fromLeft: false },
   tree2: { imgKey: 'tree2', w: 80,  h: 210, groundOffset: 210,  fromLeft: false },
   tree3: { imgKey: 'tree3', w: 80,  h: 220, groundOffset: null, fromLeft: false },
-  plane: { imgKey: 'plane', w: 150, h: 75,  groundOffset: null, fromLeft: true  },
+  plane: { imgKey: 'plane', w: 200, h: 80,  groundOffset: null, fromLeft: true  },
 };
 class Obstacle {
   constructor(type, x) {
     this.type = type; const cfg = OBSTACLE_CONFIG[type];
     this.imgKey = cfg.imgKey; this.width = cfg.w; this.height = cfg.h; this.scored = false;
     if (cfg.fromLeft) {
-      this.x = -this.width - 20; this.y = 20 + Math.random() * 80; this.speedX = 0;
+      this.x = -this.width - 20; this.y = 80 + Math.random() * 200; this.speedX = 0;
     } else if (type === 'tree3') {
       this.x = x !== undefined ? x : canvas.width + 50;
       this.y = canvas.height - 140 - Math.random() * 100; this.speedX = 0;
@@ -789,7 +767,7 @@ class Obstacle {
     this.x += this.speedX;
     if (fromLeft) {
       if (this.x > canvas.width + 20) {
-        this.x = -this.width - 20; this.y = 20 + Math.random() * 80;
+        this.x = -this.width - 20; this.y = 80 + Math.random() * 200;
         this.scored = false; // BUG FIX: garante reset do combo ao reciclar avião
       }
     } else {

@@ -229,6 +229,16 @@ const STORE_CATALOG = {
       tint: '#00BFFF',
       trailColor: '#87CEEB',
     },
+    {
+      id: 'skin_shadow',
+      name: 'Passarim Sombra',
+      desc: 'Quase invisível',
+      price: 150,
+      unlocked: false,
+      imgKey: null,
+      tint: '#2F4F4F',
+      trailColor: '#808080',
+    }
   ],
 
   // ── POWER-UPS PERMANENTES (upgrades de duração) ───────
@@ -269,6 +279,15 @@ const STORE_CATALOG = {
       affects: 'startLives',
       bonus: 1,
     },
+    {
+      id: 'pu_combo_plus',
+      name: 'Combo Pro',
+      desc: 'Aumenta o bônus de combo',
+      price: 120,
+      unlocked: false,
+      affects: 'combo',
+      multiplier: 1.5,
+    }
   ],
 
   // ── ITENS COSMÉTICOS ──────────────────────────────────
@@ -297,6 +316,14 @@ const STORE_CATALOG = {
       unlocked: false,
       trailColors: ['#FF0000','#FF7700','#FFFF00','#00FF00','#0000FF','#8B00FF'],
     },
+    {
+      id: 'trail_stars',
+      name: 'Rastro de Estrelas',
+      desc: 'Deixa um rastro de estrelas',
+      price: 100,
+      unlocked: false,
+      trailColors: ['#FFFFFF','#FFFF00','#FFD700'],
+    }
   ],
 };
 

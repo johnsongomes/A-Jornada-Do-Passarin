@@ -956,6 +956,7 @@ function makeGameVars(livesBonus = 0) {
 let bird, obstacles, heart, powerup, owl;
 let frameCount = 0;
 let storeState = PlayerStore.load(); // estado da loja carregado uma vez
+export { storeState, PlayerStore }; // exporta para playerData.js e outros módulos
 
 function resetGameVars() {
   const livesBonus = PlayerStore.getStartLivesBonus(storeState);

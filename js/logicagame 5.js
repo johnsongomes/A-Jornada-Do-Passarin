@@ -31,7 +31,7 @@
 'use strict';
 
 // ─── SUPABASE CLIENT (importado do seu supabaseClient.js) ─
-import { supabase } from './supabaseClient.js';
+import { supabase } from '/js/supabaseClient.js';
 
 // ─── CANVAS ───────────────────────────────────────────────
 const canvas = document.getElementById('gameCanvas');
@@ -596,16 +596,13 @@ const ParticleSystem = {
 
 // ─── TRANSIÇÃO FADE ───────────────────────────────────────
 const Transition = {
-  alpha: 0, dir: 0, speed: 0.07, cb: null,
-  start(cb) {
-    // Se já estava em transição, executa o callback pendente antes de sobrescrever
-    if (this.cb) { this.cb(); }
-    this.alpha = 0; this.dir = 1; this.cb = cb;
-  },
+  alpha: 0, dir: 0, speed: 0.04, cb: null,
+  start(cb) { this.alpha = 0; this.dir = 1; this.cb = cb; },
   update() {
     if (!this.dir) return;
-    this.alpha = Math.min(1, Math.max(0, this.alpha + this.dir * this.speed));
+    this.alpha += this.dir * this.speed;
     if (this.alpha >= 1 && this.dir === 1) {
+      this.alpha = 1;
       if (this.cb) { this.cb(); this.cb = null; }
       this.dir = -1;
     } else if (this.alpha <= 0 && this.dir === -1) {
@@ -616,32 +613,6 @@ const Transition = {
     if (this.alpha <= 0) return;
     ctx.fillStyle = `rgba(0,0,0,${this.alpha})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-  },
-};
-
-// ─── CAMERA SHAKE ────────────────────────────────────────
-const CameraShake = {
-  intensity: 0,
-  duration:  0,
-  trigger(intensity = 6, duration = 15) {
-    this.intensity = intensity;
-    this.duration  = duration;
-  },
-  update() {
-    if (this.duration > 0) {
-      this.intensity *= 0.85;
-      this.duration--;
-    }
-  },
-  apply() {
-    if (this.duration <= 0) return;
-    const dx = (Math.random() - 0.5) * this.intensity;
-    const dy = (Math.random() - 0.5) * this.intensity;
-    ctx.save();
-    ctx.translate(dx, dy);
-  },
-  restore() {
-    if (this.duration > 0) ctx.restore();
   },
 };
 
@@ -930,13 +901,8 @@ function resetGameVars() {
 }
 
 function startGame() {
-  frameCount = 0;
-  gamePaused = false;
-  Transition.start(() => {
-    currentScene = SCENE.GAME;
-    frameCount   = 0;
-    resetGameVars();
-  });
+  frameCount = 0; // reset ANTES da transição para não acumular entre partidas
+  Transition.start(() => { currentScene = SCENE.GAME; frameCount = 0; resetGameVars(); });
 }
 
 function triggerGameOver() {

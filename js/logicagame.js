@@ -745,7 +745,7 @@ const OBSTACLE_CONFIG = {
   tree:  { imgKey: 'tree1', w: 80,  h: 200, groundOffset: 200,  fromLeft: false },
   tree2: { imgKey: 'tree2', w: 80,  h: 210, groundOffset: 210,  fromLeft: false },
   tree3: { imgKey: 'tree3', w: 80,  h: 220, groundOffset: null, fromLeft: false },
-  plane: { imgKey: 'plane', w: 150, h: 75,  groundOffset: null, fromLeft: true  },
+  plane: { imgKey: 'plane', w: 200, h: 80,  groundOffset: null, fromLeft: true  },
 };
 class Obstacle {
   constructor(type, x) {

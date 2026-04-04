@@ -752,7 +752,7 @@ class Obstacle {
     this.type = type; const cfg = OBSTACLE_CONFIG[type];
     this.imgKey = cfg.imgKey; this.width = cfg.w; this.height = cfg.h; this.scored = false;
     if (cfg.fromLeft) {
-      this.x = -this.width - 20; this.y = 80 + Math.random() * 200; this.speedX = 0;
+      this.x = -this.width - 20; this.y = 90 + Math.random() * 200; this.speedX = 0;
     } else if (type === 'tree3') {
       this.x = x !== undefined ? x : canvas.width + 50;
       this.y = canvas.height - 140 - Math.random() * 100; this.speedX = 0;

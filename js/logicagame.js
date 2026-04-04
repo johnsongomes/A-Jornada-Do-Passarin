@@ -767,7 +767,7 @@ class Obstacle {
     this.x += this.speedX;
     if (fromLeft) {
       if (this.x > canvas.width + 20) {
-        this.x = -this.width - 20; this.y = 90 + Math.random() * 200;
+        this.x = -this.width - 20; this.y = 100 + Math.random() * 200;
         this.scored = false; // BUG FIX: garante reset do combo ao reciclar avião
       }
     } else {

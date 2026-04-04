@@ -229,16 +229,6 @@ const STORE_CATALOG = {
       tint: '#00BFFF',
       trailColor: '#87CEEB',
     },
-    {
-      id: 'skin_shadow',
-      name: 'Passarim Sombra',
-      desc: 'Quase invisível',
-      price: 150,
-      unlocked: false,
-      imgKey: null,
-      tint: '#2F4F4F',
-      trailColor: '#808080',
-    }
   ],
 
   // ── POWER-UPS PERMANENTES (upgrades de duração) ───────
@@ -279,15 +269,6 @@ const STORE_CATALOG = {
       affects: 'startLives',
       bonus: 1,
     },
-    {
-      id: 'pu_combo_plus',
-      name: 'Combo Pro',
-      desc: 'Aumenta o bônus de combo',
-      price: 120,
-      unlocked: false,
-      affects: 'combo',
-      multiplier: 1.5,
-    }
   ],
 
   // ── ITENS COSMÉTICOS ──────────────────────────────────
@@ -316,14 +297,6 @@ const STORE_CATALOG = {
       unlocked: false,
       trailColors: ['#FF0000','#FF7700','#FFFF00','#00FF00','#0000FF','#8B00FF'],
     },
-    {
-      id: 'trail_stars',
-      name: 'Rastro de Estrelas',
-      desc: 'Deixa um rastro de estrelas',
-      price: 100,
-      unlocked: false,
-      trailColors: ['#FFFFFF','#FFFF00','#FFD700'],
-    }
   ],
 };
 
@@ -1014,6 +987,8 @@ function triggerGameOver() {
 
   // Salva localmente
   const playerData = LocalData.updateAfterGame(gv.distanciap);
+  // Sincroniza moedas acumuladas na partida com Supabase
+  if (typeof PlayerDataService !== 'undefined') PlayerDataService.save();
 
   // Envia para Supabase — usa usuário da sessão ativa
   SupabaseService.saveScore({
@@ -1068,7 +1043,7 @@ function updateGameplay() {
       // Ganha 1 moeda a cada desvio, 2 se doubleScore ativo
       const coinsGained = gv.doubleScore ? 2 : 1;
       storeState.coins += coinsGained;
-      PlayerStore.save(storeState);
+      PlayerStore.save(storeState); // salva local; Supabase é salvo no triggerGameOver
 
       if (gv.combo >= 3) {
         spawnFloat(bird.x, bird.y - 50, `x${gv.combo} COMBO! +${pts}`, '#FFD700');
@@ -1639,6 +1614,8 @@ function drawStoreScene() {
         if (item.id.startsWith('skin_'))  storeState.activeSkin      = item.id;
         else                              storeState.activeCosmetic   = item.id;
         PlayerStore.save(storeState);
+        // Sincroniza skin equipada com Supabase
+        if (typeof PlayerDataService !== 'undefined') PlayerDataService.save();
       }
     } else {
       ctx.fillStyle = storeState.coins >= item.price ? '#FF9800' : '#444';
@@ -1647,7 +1624,12 @@ function drawStoreScene() {
       ctx.fillText(`🪙 ${item.price}`, btnX + btnW/2, btnY + 21);
       if (Input.pressed && pointInRect(Input.x, Input.y, btnX, btnY, btnW, btnH)) {
         const result = PlayerStore.purchase(item.id, storeState);
-        if (!result.ok) spawnFloat(canvas.width/2, canvas.height/2, result.reason, '#FF4444');
+        if (result.ok) {
+          // Sincroniza item desbloqueado + moedas gastas com Supabase
+          if (typeof PlayerDataService !== 'undefined') PlayerDataService.save();
+        } else {
+          spawnFloat(canvas.width/2, canvas.height/2, result.reason, '#FF4444');
+        }
       }
     }
   });
